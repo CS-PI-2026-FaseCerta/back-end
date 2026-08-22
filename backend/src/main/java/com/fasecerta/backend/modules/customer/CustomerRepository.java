@@ -1,5 +1,12 @@
 package com.fasecerta.backend.modules.customer;
 
-public class CustomerRepository {
+import java.util.UUID;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import com.fasecerta.backend.modules.customer.CustomerEntity;
+
+public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID> {
     
-}
+
+    
+} 
