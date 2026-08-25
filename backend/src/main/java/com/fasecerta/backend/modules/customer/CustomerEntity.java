@@ -32,14 +32,14 @@ public class CustomerEntity {
     @Column(name = "nome_completo")
     private String nomeCompleto;
 
-    @Column(unique = true)
+   
     private String cpf;
 
     // Dados de Pessoa Jurídica
     @Column(name = "razao_social")
     private String razaoSocial;
 
-    @Column(unique = true)
+  
     private String cnpj;
 
     @Column(name = "insc_estadual")
@@ -51,7 +51,7 @@ public class CustomerEntity {
     // Contato
     private String telefone;
 
-    @Column(unique = true)
+
     private String email;
 
     // Endereço
