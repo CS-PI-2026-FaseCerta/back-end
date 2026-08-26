@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Null;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public final class ExpensesDtos {
@@ -45,6 +46,15 @@ public final class ExpensesDtos {
 
             @Null(message = "created_by é preenchido automaticamente pelo usuário autenticado")
             UUID created_by
+    ) {
+    }
+
+    public record ExpensePageResponse(
+            List<ExpensesEntity> items,
+            long total,
+            int page,
+            int limit,
+            int totalPages
     ) {
     }
 }

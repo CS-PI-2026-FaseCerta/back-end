@@ -1,5 +1,11 @@
 package com.fasecerta.backend.modules.expenses;
 
+import com.fasecerta.backend.shared.enums.CategoryExpenses;
+import com.fasecerta.backend.shared.enums.PaymentMethod;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -7,10 +13,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
 public class ExpensesService {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final ExpensesRepository expensesRepository;
 
@@ -34,6 +43,76 @@ public class ExpensesService {
         expense.setCreatedBy(createdBy);
 
         return expensesRepository.save(expense);
+    }
+
+    @Transactional(readOnly = true)
+    public ExpensesDtos.ExpensePageResponse list(
+            int page,
+            int limit,
+            CategoryExpenses categoria,
+            Boolean pago,
+            ExpensePaymentType tipoPagamento,
+            PaymentMethod modoPagamento,
+            LocalDate dataInicial,
+            LocalDate dataFinal
+    ) {
+        validatePagination(page, limit);
+
+        Specification<ExpensesEntity> filters = (root, query, cb) -> cb.isNull(root.get("deletedAt"));
+
+        if (categoria != null) {
+            filters = filters.and((root, query, cb) -> cb.equal(root.get("categoria"), categoria));
+        }
+        if (pago != null) {
+            filters = filters.and((root, query, cb) -> cb.equal(root.get("pago"), pago));
+        }
+        if (tipoPagamento != null) {
+            filters = filters.and((root, query, cb) -> cb.equal(root.get("tipoPagamento"), tipoPagamento));
+        }
+        if (modoPagamento != null) {
+            filters = filters.and((root, query, cb) -> cb.equal(root.get("modoPagamento"), modoPagamento));
+        }
+        if (dataInicial != null) {
+            filters = filters.and((root, query, cb) ->
+                    cb.greaterThanOrEqualTo(root.<LocalDate>get("data"), dataInicial));
+        }
+        if (dataFinal != null) {
+            filters = filters.and((root, query, cb) ->
+                    cb.lessThanOrEqualTo(root.<LocalDate>get("data"), dataFinal));
+        }
+
+        Sort sort = Sort.by(
+                Sort.Order.desc("data"),
+                Sort.Order.desc("id")
+        );
+        PageRequest pageable = PageRequest.of(page - 1, limit, sort);
+        Page<ExpensesEntity> result = expensesRepository.findAll(filters, pageable);
+
+        return new ExpensesDtos.ExpensePageResponse(
+                result.getContent(),
+                result.getTotalElements(),
+                page,
+                limit,
+                result.getTotalPages()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public ExpensesEntity findById(UUID id) {
+        return expensesRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
+    }
+
+    private void validatePagination(int page, int limit) {
+        if (page < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1");
+        }
+        if (limit < 1 || limit > MAX_PAGE_SIZE) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "limit deve estar entre 1 e " + MAX_PAGE_SIZE
+            );
+        }
     }
 
     private UUID authenticatedUserId(Authentication authentication) {
