@@ -1,17 +1,17 @@
-package com.fasecerta.backend.modules.services;
-
-import org.flywaydb.core.api.migration.BaseJavaMigration;
-import org.flywaydb.core.api.migration.Context;
-import org.springframework.stereotype.Component;
+package db.migration;
 
 import java.sql.Statement;
 
-@Component
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
+
 public class V3__Create_services extends BaseJavaMigration {
 
     @Override
     public void migrate(Context context) throws Exception {
+
         try (Statement statement = context.getConnection().createStatement()) {
+
             statement.execute("""
                     CREATE TABLE servicos (
                         id BINARY(16) NOT NULL,
@@ -23,18 +23,18 @@ public class V3__Create_services extends BaseJavaMigration {
                         created_by BINARY(16) NOT NULL,
                         updated_by BINARY(16) NULL,
                         created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-                        updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+                        updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+                            ON UPDATE CURRENT_TIMESTAMP(6),
                         deleted_at DATETIME(6) NULL,
 
-                        CONSTRAINT pk_servicos PRIMARY KEY (id),
+                        CONSTRAINT pk_servicos
+                            PRIMARY KEY (id),
 
-                        CONSTRAINT chk_servicos_tipo_cobranca CHECK (
-                            tipo_cobranca IN ('REAL', 'US')
-                        ),
+                        CONSTRAINT chk_servicos_tipo_cobranca
+                            CHECK (tipo_cobranca IN ('REAL', 'US')),
 
-                        CONSTRAINT chk_servicos_valor_base CHECK (
-                            valor_base >= 0
-                        ),
+                        CONSTRAINT chk_servicos_valor_base
+                            CHECK (valor_base >= 0),
 
                         CONSTRAINT fk_servicos_created_by
                             FOREIGN KEY (created_by)
