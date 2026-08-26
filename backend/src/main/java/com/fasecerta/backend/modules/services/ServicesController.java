@@ -21,7 +21,7 @@ public class ServicesController {
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('ADMIN', 'GESTOR')")
     public ResponseEntity<ServicesEntity> create(
             @Valid @RequestBody ServicesDtos.CreateServiceRequest request,
             Authentication authentication) {
