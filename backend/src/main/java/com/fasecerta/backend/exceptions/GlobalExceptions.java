@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.fasecerta.backend.modules.customer.CustomerConflictException;
 import com.fasecerta.backend.modules.customer.CustomerValidationException;
+import com.fasecerta.backend.modules.services.ServiceValidationException;
 
 @RestControllerAdvice
 public class GlobalExceptions {
@@ -28,11 +29,35 @@ public class GlobalExceptions {
     }
 
     @ExceptionHandler(CustomerValidationException.class)
-    public ResponseEntity<Map<String, String>> handleValidation(
+    public ResponseEntity<Map<String, String>> handleCustomerValidation(
             CustomerValidationException exception) {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "message",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(ServiceValidationException.class)
+    public ResponseEntity<Map<String, String>> handleServiceValidation(
+            ServiceValidationException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "message",
+                        exception.getMessage()
+                ));
+    }
+
+    @ExceptionHandler(UnauthenticatedException.class)
+    public ResponseEntity<Map<String, String>> handleUnauthenticated(
+            UnauthenticatedException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(
                         "message",
                         exception.getMessage()
