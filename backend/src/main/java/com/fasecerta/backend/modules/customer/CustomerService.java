@@ -85,17 +85,19 @@ public class CustomerService {
         String cpf = valueOrCurrent(request.cpf(), customer.getCpf());
         String razaoSocial = valueOrCurrent(request.razaoSocial(), customer.getRazaoSocial());
         String cnpj = valueOrCurrent(request.cnpj(), customer.getCnpj());
+        String inscEstadual = valueOrCurrent(request.inscEstadual(), customer.getInscEstadual());
+        String inscMunicipal = valueOrCurrent(request.inscMunicipal(), customer.getInscMunicipal());
 
         if (mudouTipo && tipoPessoa == PersonType.PF) {
             razaoSocial = null;
             cnpj = null;
+            inscEstadual = null;
+            inscMunicipal = null;
         } else if (mudouTipo && tipoPessoa == PersonType.PJ) {
             nomeCompleto = null;
             cpf = null;
         }
 
-        String inscEstadual = valueOrCurrent(request.inscEstadual(), customer.getInscEstadual());
-        String inscMunicipal = valueOrCurrent(request.inscMunicipal(), customer.getInscMunicipal());
         String telefone = normalizePhone(valueOrCurrent(request.telefone(), customer.getTelefone()));
         String email = normalizeEmail(valueOrCurrent(request.email(), customer.getEmail()));
         String cep = valueOrCurrent(request.cep(), customer.getCep());
