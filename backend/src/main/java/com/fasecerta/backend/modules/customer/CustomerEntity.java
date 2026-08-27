@@ -13,10 +13,14 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import lombok.Data;
 
 @Entity
 @Table(name = "customer")
+@SQLDelete(sql = "UPDATE customer SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Data
 public class CustomerEntity {
 
@@ -33,6 +37,7 @@ public class CustomerEntity {
     private String nomeCompleto;
 
    
+    @Column(name = "cpf")
     private String cpf;
 
     // Dados de Pessoa Jurídica
@@ -40,6 +45,7 @@ public class CustomerEntity {
     private String razaoSocial;
 
   
+    @Column(name = "cnpj")
     private String cnpj;
 
     @Column(name = "insc_estadual")
@@ -49,9 +55,11 @@ public class CustomerEntity {
     private String inscMunicipal;
 
     // Contato
+    @Column(name = "telefone")
     private String telefone;
 
 
+    @Column(name = "email")
     private String email;
 
     // Endereço
@@ -76,7 +84,7 @@ public class CustomerEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     // Soft Delete

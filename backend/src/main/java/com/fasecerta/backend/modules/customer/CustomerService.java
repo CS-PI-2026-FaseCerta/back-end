@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasecerta.backend.modules.customer.CustomerDtos.CustomerCreateRequest;
+import com.fasecerta.backend.modules.customer.CustomerDtos.CustomerUpdateRequest;
 import com.fasecerta.backend.modules.customer.CustomerDtos.CustomerResponse;
 import com.fasecerta.backend.shared.enums.PersonType;
 
@@ -60,10 +61,87 @@ public class CustomerService {
         // Nunca vem do DTO.
         customer.setCreatedBy(authenticatedUserId);
         customer.setCreatedAt(LocalDateTime.now());
+        customer.setUpdatedAt(LocalDateTime.now());
 
         CustomerEntity saved = customerRepository.save(customer);
 
         return toResponse(saved);
+    }
+
+    @Transactional
+    public CustomerResponse update(
+            UUID id,
+            CustomerUpdateRequest request,
+            UUID authenticatedUserId) {
+
+        CustomerEntity customer = customerRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente não encontrado"));
+
+        PersonType tipoPessoa = request.tipoPessoa() != null
+                ? request.tipoPessoa() : customer.getTipoPessoa();
+        boolean mudouTipo = tipoPessoa != customer.getTipoPessoa();
+
+        String nomeCompleto = valueOrCurrent(request.nomeCompleto(), customer.getNomeCompleto());
+        String cpf = valueOrCurrent(request.cpf(), customer.getCpf());
+        String razaoSocial = valueOrCurrent(request.razaoSocial(), customer.getRazaoSocial());
+        String cnpj = valueOrCurrent(request.cnpj(), customer.getCnpj());
+        String inscEstadual = valueOrCurrent(request.inscEstadual(), customer.getInscEstadual());
+        String inscMunicipal = valueOrCurrent(request.inscMunicipal(), customer.getInscMunicipal());
+
+        if (mudouTipo && tipoPessoa == PersonType.PF) {
+            razaoSocial = null;
+            cnpj = null;
+            inscEstadual = null;
+            inscMunicipal = null;
+        } else if (mudouTipo && tipoPessoa == PersonType.PJ) {
+            nomeCompleto = null;
+            cpf = null;
+        }
+
+        String telefone = normalizePhone(valueOrCurrent(request.telefone(), customer.getTelefone()));
+        String email = normalizeEmail(valueOrCurrent(request.email(), customer.getEmail()));
+        String cep = valueOrCurrent(request.cep(), customer.getCep());
+        String logradouro = valueOrCurrent(request.logradouro(), customer.getLogradouro());
+        String numero = valueOrCurrent(request.numero(), customer.getNumero());
+        String complemento = valueOrCurrent(request.complemento(), customer.getComplemento());
+        String bairro = valueOrCurrent(request.bairro(), customer.getBairro());
+        String cidade = valueOrCurrent(request.cidade(), customer.getCidade());
+        String estado = valueOrCurrent(request.estado(), customer.getEstado());
+        String anotacoes = valueOrCurrent(request.anotacoes(), customer.getAnotacoes());
+
+        cpf = normalizeDocument(cpf);
+        cnpj = normalizeDocument(cnpj);
+        validatePersonType(new CustomerCreateRequest(
+                tipoPessoa, nomeCompleto, cpf, razaoSocial, cnpj,
+                inscEstadual, inscMunicipal, telefone, email, cep,
+                logradouro, numero, complemento, bairro, cidade, estado, anotacoes));
+        validateUniquenessForUpdate(cpf, cnpj, email, id);
+
+        customer.setTipoPessoa(tipoPessoa);
+        customer.setNomeCompleto(nomeCompleto);
+        customer.setCpf(cpf);
+        customer.setRazaoSocial(razaoSocial);
+        customer.setCnpj(cnpj);
+        customer.setInscEstadual(inscEstadual);
+        customer.setInscMunicipal(inscMunicipal);
+        customer.setTelefone(telefone);
+        customer.setEmail(email);
+        customer.setCep(cep);
+        customer.setLogradouro(logradouro);
+        customer.setNumero(numero);
+        customer.setComplemento(complemento);
+        customer.setBairro(bairro);
+        customer.setCidade(cidade);
+        customer.setEstado(estado);
+        customer.setAnotacoes(anotacoes);
+        customer.setUpdatedBy(authenticatedUserId);
+        customer.setUpdatedAt(LocalDateTime.now());
+
+        return toResponse(customerRepository.save(customer));
+    }
+
+    private String valueOrCurrent(String incoming, String current) {
+        return incoming != null ? incoming : current;
     }
 
     private void validatePersonType(CustomerCreateRequest request) {
@@ -153,6 +231,19 @@ public class CustomerService {
 
             throw new CustomerConflictException(
                     "E-mail já cadastrado no sistema");
+        }
+    }
+
+    private void validateUniquenessForUpdate(
+            String cpf, String cnpj, String email, UUID id) {
+        if (cpf != null && customerRepository.existsByCpfAndDeletedAtIsNullAndIdNot(cpf, id)) {
+            throw new CustomerConflictException("Documento já cadastrado no sistema");
+        }
+        if (cnpj != null && customerRepository.existsByCnpjAndDeletedAtIsNullAndIdNot(cnpj, id)) {
+            throw new CustomerConflictException("Documento já cadastrado no sistema");
+        }
+        if (email != null && customerRepository.existsByEmailAndDeletedAtIsNullAndIdNot(email, id)) {
+            throw new CustomerConflictException("E-mail já cadastrado no sistema");
         }
     }
 
