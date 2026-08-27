@@ -103,6 +103,45 @@ public class ExpensesService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
     }
 
+    @Transactional
+    public ExpensesEntity update(
+            UUID id,
+            ExpensesDtos.UpdateExpenseRequest request,
+            Authentication authentication
+    ) {
+        UUID updatedBy = authenticatedUserId(authentication);
+        ExpensesEntity expense = expensesRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
+
+        if (request.data() != null) {
+            expense.setData(request.data());
+        }
+        if (request.descricao() != null) {
+            expense.setDescricao(request.descricao());
+        }
+        if (request.pago_a() != null) {
+            expense.setPagoA(request.pago_a());
+        }
+        if (request.categoria() != null) {
+            expense.setCategoria(request.categoria());
+        }
+        if (request.valor() != null) {
+            expense.setValor(request.valor());
+        }
+        if (request.tipo_pagamento() != null) {
+            expense.setTipoPagamento(request.tipo_pagamento());
+        }
+        if (request.modo_pagamento() != null) {
+            expense.setModoPagamento(request.modo_pagamento());
+        }
+        if (request.pago() != null) {
+            expense.setPago(request.pago());
+        }
+
+        expense.setUpdatedBy(updatedBy);
+        return expensesRepository.save(expense);
+    }
+
     private void validatePagination(int page, int limit) {
         if (page < 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1");
