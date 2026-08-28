@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -70,5 +71,15 @@ public class ExpensesController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ExpensesEntity> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(expensesService.findById(id));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ExpensesEntity> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody ExpensesDtos.UpdateExpenseRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(expensesService.update(id, request, authentication));
     }
 }

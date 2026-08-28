@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
+import jakarta.validation.constraints.Pattern;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -46,6 +47,32 @@ public final class ExpensesDtos {
 
             @Null(message = "created_by é preenchido automaticamente pelo usuário autenticado")
             UUID created_by
+    ) {
+    }
+
+    public record UpdateExpenseRequest(
+            LocalDate data,
+
+            @Pattern(regexp = "(?s).*\\S.*", message = "descricao não pode ser vazia")
+            String descricao,
+
+            @Pattern(regexp = "(?s).*\\S.*", message = "pago_a não pode ser vazio")
+            String pago_a,
+
+            CategoryExpenses categoria,
+
+            @DecimalMin(value = "0", inclusive = false, message = "valor deve ser maior que zero")
+            @Digits(integer = 17, fraction = 2, message = "valor deve possuir no máximo duas casas decimais")
+            BigDecimal valor,
+
+            ExpensePaymentType tipo_pagamento,
+
+            PaymentMethod modo_pagamento,
+
+            Boolean pago,
+
+            @Null(message = "updated_by é preenchido automaticamente pelo usuário autenticado")
+            UUID updated_by
     ) {
     }
 
