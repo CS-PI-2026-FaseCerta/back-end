@@ -48,6 +48,7 @@ public class ServicesService {
                 service.setTipoCobranca(request.tipo_cobranca());
                 service.setValorBase(request.valor_base());
                 service.setCreatedBy(authenticatedUserId);
+                service.setCreatedAt(LocalDateTime.now());
 
                 ServicesEntity saved = servicesRepository.save(service);
 
