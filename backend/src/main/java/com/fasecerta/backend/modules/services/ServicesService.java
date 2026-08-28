@@ -100,8 +100,22 @@ public class ServicesService {
         public ServiceResponse findById(UUID id) {
                 return servicesRepository.findByIdAndDeletedAtIsNull(id)
                                 .map(this::toResponse)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Serviço não encontrado"));
+        }
+
+        @Transactional
+        public void remove(UUID id, Authentication authentication) {
+                UUID updatedBy = authenticatedUserId(authentication);
+
+                ServicesEntity service = servicesRepository.findByIdAndDeletedAtIsNull(id)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
                                                 "Serviço não encontrado"));
+
+                service.setUpdatedBy(updatedBy);
+                service.setDeletedAt(LocalDateTime.now());
+
+                servicesRepository.save(service);
         }
 
         private void validatePagination(int page, int limit) {
