@@ -2,13 +2,21 @@ package com.fasecerta.backend.modules.customer;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasecerta.backend.modules.customer.CustomerDtos.CustomerCreateRequest;
 import com.fasecerta.backend.modules.customer.CustomerDtos.CustomerUpdateRequest;
 import com.fasecerta.backend.modules.customer.CustomerDtos.CustomerResponse;
+import com.fasecerta.backend.modules.customer.CustomerDtos.CustomerPageResponse;
 import com.fasecerta.backend.shared.enums.PersonType;
 
 import lombok.RequiredArgsConstructor;
@@ -16,7 +24,9 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CustomerService {
-    
+
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final CustomerRepository customerRepository;
 
     @Transactional
@@ -138,6 +148,76 @@ public class CustomerService {
         customer.setUpdatedAt(LocalDateTime.now());
 
         return toResponse(customerRepository.save(customer));
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerPageResponse list(
+            int page,
+            int limit,
+            String nome,
+            String documento,
+            PersonType tipoPessoa,
+            String email) {
+
+        validatePagination(page, limit);
+
+        Specification<CustomerEntity> filters = (root, query, cb) -> cb.isNull(root.get("deletedAt"));
+
+        if (nome != null && !nome.isBlank()) {
+            String nomePattern = "%" + nome.trim().toLowerCase() + "%";
+            filters = filters.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("nomeCompleto")), nomePattern),
+                    cb.like(cb.lower(root.get("razaoSocial")), nomePattern)
+            ));
+        }
+
+        if (documento != null && !documento.isBlank()) {
+            String documentoNormalizado = normalizeDocument(documento);
+            filters = filters.and((root, query, cb) -> cb.or(
+                    cb.equal(root.get("cpf"), documentoNormalizado),
+                    cb.equal(root.get("cnpj"), documentoNormalizado)
+            ));
+        }
+
+        if (tipoPessoa != null) {
+            filters = filters.and((root, query, cb) -> cb.equal(root.get("tipoPessoa"), tipoPessoa));
+        }
+
+        if (email != null && !email.isBlank()) {
+            String emailNormalizado = normalizeEmail(email);
+            filters = filters.and((root, query, cb) -> cb.equal(root.get("email"), emailNormalizado));
+        }
+
+        Sort sort = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+        PageRequest pageable = PageRequest.of(page - 1, limit, sort);
+        Page<CustomerEntity> result = customerRepository.findAll(filters, pageable);
+
+        return new CustomerPageResponse(
+                result.getContent().stream().map(this::toResponse).collect(Collectors.toList()),
+                result.getTotalElements(),
+                page,
+                limit,
+                result.getTotalPages()
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerResponse findById(UUID id) {
+        return customerRepository.findByIdAndDeletedAtIsNull(id)
+                .map(this::toResponse)
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente não encontrado"));
+    }
+
+    private void validatePagination(int page, int limit) {
+        if (page < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1");
+        }
+        if (limit < 1 || limit > MAX_PAGE_SIZE) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "limit deve estar entre 1 e " + MAX_PAGE_SIZE
+            );
+        }
     }
 
     private String valueOrCurrent(String incoming, String current) {

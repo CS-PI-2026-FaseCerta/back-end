@@ -128,4 +128,12 @@ public final class CustomerDtos {
         LocalDateTime createdAt,
         LocalDateTime updatedAt
     ){}
+
+    public record CustomerPageResponse(
+        java.util.List<CustomerResponse> items,
+        long total,
+        int page,
+        int limit,
+        int totalPages
+    ){}
 }
