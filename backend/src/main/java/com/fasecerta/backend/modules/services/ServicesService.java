@@ -21,21 +21,21 @@ import com.fasecerta.backend.modules.services.ServicesDtos.ServicePageResponse;
 import com.fasecerta.backend.modules.services.ServicesDtos.ServiceResponse;
 import com.fasecerta.backend.shared.enums.BillingType;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class ServicesService {
 
         private static final int MAX_PAGE_SIZE = 100;
 
         private final ServicesRepository servicesRepository;
 
+        public ServicesService(ServicesRepository servicesRepository) {
+                this.servicesRepository = servicesRepository;
+        }
+
         @Transactional
         public ServiceResponse create(
                         CreateServiceRequest request,
                         Authentication authentication) {
-
                 UUID authenticatedUserId = authenticatedUserId(authentication);
 
                 validateRequest(request);
@@ -43,8 +43,7 @@ public class ServicesService {
                 ServicesEntity service = new ServicesEntity();
 
                 service.setNome(request.nome().trim());
-                service.setDescricao(
-                                normalizeDescription(request.descricao()));
+                service.setDescricao(normalizeDescription(request.descricao()));
                 service.setCategoria(request.categoria().trim());
                 service.setTipoCobranca(request.tipo_cobranca());
                 service.setValorBase(request.valor_base());
@@ -65,7 +64,6 @@ public class ServicesService {
                         BillingType tipoCobranca,
                         String orderBy,
                         String orderDir) {
-
                 validatePagination(page, limit);
 
                 Specification<ServicesEntity> filters = (root, query, cb) -> cb.isNull(root.get("deletedAt"));
@@ -104,12 +102,25 @@ public class ServicesService {
                                                 "Serviço não encontrado"));
         }
 
+        @Transactional
+        public void remove(UUID id, Authentication authentication) {
+                UUID updatedBy = authenticatedUserId(authentication);
+
+                ServicesEntity service = servicesRepository.findByIdAndDeletedAtIsNull(id)
+                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Serviço não encontrado"));
+
+                service.setUpdatedBy(updatedBy);
+                service.setDeletedAt(LocalDateTime.now());
+
+                servicesRepository.save(service);
+        }
+
         private void validatePagination(int page, int limit) {
                 if (page < 1) {
-                        throw new ServiceValidationException("page deve ser maior ou igual a 1");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1");
                 }
                 if (limit < 1 || limit > MAX_PAGE_SIZE) {
-                        throw new ServiceValidationException("limit deve estar entre 1 e " + MAX_PAGE_SIZE);
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "limit deve estar entre 1 e " + MAX_PAGE_SIZE);
                 }
         }
 
@@ -121,7 +132,7 @@ public class ServicesService {
                                 case "categoria" -> field = "categoria";
                                 case "valor_base", "valorbase" -> field = "valorBase";
                                 case "nome" -> field = "nome";
-                                default -> throw new ServiceValidationException("Parâmetro de ordenação inválido");
+                                default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parâmetro de ordenação inválido");
                         }
                 }
 
@@ -135,27 +146,28 @@ public class ServicesService {
 
         private void validateRequest(CreateServiceRequest request) {
                 if (request.valor_base() == null) {
-                        throw new ServiceValidationException("valor_base é obrigatório");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor_base é obrigatório");
                 }
 
                 if (request.valor_base().compareTo(BigDecimal.ZERO) < 0) {
-                        throw new ServiceValidationException("valor_base não pode ser negativo");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor_base não pode ser negativo");
                 }
 
                 if (request.valor_base().scale() > 2) {
-                        throw new ServiceValidationException("valor_base deve possuir no máximo duas casas decimais");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                        "valor_base deve possuir no máximo duas casas decimais");
                 }
 
                 if (request.nome() == null || request.nome().trim().isEmpty()) {
-                        throw new ServiceValidationException("nome é obrigatório");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nome é obrigatório");
                 }
 
                 if (request.categoria() == null || request.categoria().trim().isEmpty()) {
-                        throw new ServiceValidationException("categoria é obrigatória");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "categoria é obrigatória");
                 }
 
                 if (request.tipo_cobranca() == null) {
-                        throw new ServiceValidationException("tipo_cobranca é obrigatório");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "tipo_cobranca é obrigatório");
                 }
         }
 
