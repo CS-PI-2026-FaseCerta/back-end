@@ -2,6 +2,7 @@ package com.fasecerta.backend.modules.services;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import com.fasecerta.backend.shared.enums.BillingType;
@@ -34,8 +35,16 @@ public final class ServicesDtos {
             BillingType tipo_cobranca,
 
             @NotNull(message = "valor_base é obrigatório")
-            @DecimalMin(value = "0.00", inclusive = true, message = "valor_base não pode ser negativo")
-            @Digits(integer = 17, fraction = 2, message = "valor_base deve possuir no máximo duas casas decimais")
+            @DecimalMin(
+                    value = "0.00",
+                    inclusive = true,
+                    message = "valor_base não pode ser negativo"
+            )
+            @Digits(
+                    integer = 17,
+                    fraction = 2,
+                    message = "valor_base deve possuir no máximo duas casas decimais"
+            )
             BigDecimal valor_base
     ) {
     }
@@ -52,6 +61,16 @@ public final class ServicesDtos {
             UUID updated_by,
             LocalDateTime created_at,
             LocalDateTime updated_at
+    ) {
+    }
+
+    public record ServicePageResponse(
+
+            List<ServiceResponse> items,
+            long total,
+            int page,
+            int limit,
+            int totalPages
     ) {
     }
 }
