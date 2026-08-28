@@ -1,12 +1,14 @@
 package com.fasecerta.backend.modules.customer;
 
 import java.util.UUID;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -83,6 +85,18 @@ public class CustomerController {
         @PreAuthorize("isAuthenticated()")
         public ResponseEntity<CustomerResponse> findById(@PathVariable UUID id) {
             return ResponseEntity.ok(customerService.findById(id));
+        }
+
+        @DeleteMapping("/{id}")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<Map<String, String>> delete(
+                @PathVariable UUID id,
+                Authentication authentication) {
+
+            UUID authenticatedUserId = authenticatedUserId(authentication);
+            customerService.delete(id, authenticatedUserId);
+
+            return ResponseEntity.ok(Map.of("message", "Cliente removido com sucesso"));
         }
 
         private UUID authenticatedUserId(Authentication authentication) {

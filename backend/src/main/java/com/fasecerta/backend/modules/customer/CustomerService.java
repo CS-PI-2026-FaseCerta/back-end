@@ -208,6 +208,18 @@ public class CustomerService {
                 .orElseThrow(() -> new CustomerNotFoundException("Cliente não encontrado"));
     }
 
+    @Transactional
+    public void delete(UUID id, UUID authenticatedUserId) {
+        CustomerEntity customer = customerRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente não encontrado"));
+
+        customer.setDeletedAt(LocalDateTime.now());
+        customer.setUpdatedBy(authenticatedUserId);
+        customer.setUpdatedAt(LocalDateTime.now());
+
+        customerRepository.save(customer);
+    }
+
     private void validatePagination(int page, int limit) {
         if (page < 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1");
