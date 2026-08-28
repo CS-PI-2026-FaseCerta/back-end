@@ -142,6 +142,7 @@ public class ExpensesService {
         expense.setUpdatedBy(updatedBy);
         return expensesRepository.save(expense);
     }
+    
 
     @Transactional
     public void remove(UUID id, Authentication authentication) {
