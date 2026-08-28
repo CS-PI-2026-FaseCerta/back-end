@@ -4,14 +4,22 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasecerta.backend.exceptions.UnauthenticatedException;
 import com.fasecerta.backend.modules.services.ServicesDtos.CreateServiceRequest;
+import com.fasecerta.backend.modules.services.ServicesDtos.ServicePageResponse;
 import com.fasecerta.backend.modules.services.ServicesDtos.ServiceResponse;
+import com.fasecerta.backend.shared.enums.BillingType;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,126 +27,172 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ServicesService {
 
-    private final ServicesRepository servicesRepository;
+        private static final int MAX_PAGE_SIZE = 100;
 
-    @Transactional
-    public ServiceResponse create(
-            CreateServiceRequest request,
-            Authentication authentication) {
+        private final ServicesRepository servicesRepository;
 
-        UUID authenticatedUserId =
-                authenticatedUserId(authentication);
+        @Transactional
+        public ServiceResponse create(
+                        CreateServiceRequest request,
+                        Authentication authentication) {
 
-        validateRequest(request);
+                UUID authenticatedUserId = authenticatedUserId(authentication);
 
-        ServicesEntity service = new ServicesEntity();
+                validateRequest(request);
 
-        service.setNome(request.nome().trim());
-        service.setDescricao(
-                normalizeDescription(request.descricao()));
-        service.setCategoria(request.categoria().trim());
-        service.setTipoCobranca(request.tipo_cobranca());
-        service.setValorBase(request.valor_base());
-        service.setCreatedBy(authenticatedUserId);
-        service.setCreatedAt(LocalDateTime.now());
+                ServicesEntity service = new ServicesEntity();
 
-        ServicesEntity saved =
-                servicesRepository.save(service);
+                service.setNome(request.nome().trim());
+                service.setDescricao(
+                                normalizeDescription(request.descricao()));
+                service.setCategoria(request.categoria().trim());
+                service.setTipoCobranca(request.tipo_cobranca());
+                service.setValorBase(request.valor_base());
+                service.setCreatedBy(authenticatedUserId);
+                service.setCreatedAt(LocalDateTime.now());
 
-        return toResponse(saved);
-    }
+                ServicesEntity saved = servicesRepository.save(service);
 
-    private void validateRequest(
-            CreateServiceRequest request) {
-
-        if (request.valor_base() == null) {
-            throw new ServiceValidationException(
-                    "valor_base é obrigatório");
+                return toResponse(saved);
         }
 
-        if (request.valor_base().compareTo(BigDecimal.ZERO) < 0) {
-            throw new ServiceValidationException(
-                    "valor_base não pode ser negativo");
+        @Transactional(readOnly = true)
+        public ServicePageResponse list(
+                        int page,
+                        int limit,
+                        String nome,
+                        String categoria,
+                        BillingType tipoCobranca,
+                        String orderBy,
+                        String orderDir) {
+
+                validatePagination(page, limit);
+
+                Specification<ServicesEntity> filters = (root, query, cb) -> cb.isNull(root.get("deletedAt"));
+
+                if (nome != null && !nome.trim().isEmpty()) {
+                        filters = filters.and((root, query, cb) -> cb.like(cb.lower(root.get("nome")),
+                                        "%" + nome.trim().toLowerCase() + "%"));
+                }
+
+                if (categoria != null && !categoria.trim().isEmpty()) {
+                        filters = filters.and((root, query, cb) -> cb.equal(cb.lower(root.get("categoria")),
+                                        categoria.trim().toLowerCase()));
+                }
+
+                if (tipoCobranca != null) {
+                        filters = filters.and((root, query, cb) -> cb.equal(root.get("tipoCobranca"), tipoCobranca));
+                }
+
+                Sort sort = buildSort(orderBy, orderDir);
+                PageRequest pageable = PageRequest.of(page - 1, limit, sort);
+                Page<ServicesEntity> result = servicesRepository.findAll(filters, pageable);
+
+                return new ServicePageResponse(
+                                result.getContent().stream().map(this::toResponse).toList(),
+                                result.getTotalElements(),
+                                page,
+                                limit,
+                                result.getTotalPages());
         }
 
-        if (request.valor_base().scale() > 2) {
-            throw new ServiceValidationException(
-                    "valor_base deve possuir no máximo duas casas decimais");
+        @Transactional(readOnly = true)
+        public ServiceResponse findById(UUID id) {
+                return servicesRepository.findByIdAndDeletedAtIsNull(id)
+                                .map(this::toResponse)
+                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                                "Serviço não encontrado"));
         }
 
-        if (request.nome() == null
-                || request.nome().trim().isEmpty()) {
-
-            throw new ServiceValidationException(
-                    "nome é obrigatório");
+        private void validatePagination(int page, int limit) {
+                if (page < 1) {
+                        throw new ServiceValidationException("page deve ser maior ou igual a 1");
+                }
+                if (limit < 1 || limit > MAX_PAGE_SIZE) {
+                        throw new ServiceValidationException("limit deve estar entre 1 e " + MAX_PAGE_SIZE);
+                }
         }
 
-        if (request.categoria() == null
-                || request.categoria().trim().isEmpty()) {
+        private Sort buildSort(String orderBy, String orderDir) {
+                String field = "nome";
+                if (orderBy != null && !orderBy.trim().isEmpty()) {
+                        String sanitizedOrder = orderBy.trim().toLowerCase();
+                        switch (sanitizedOrder) {
+                                case "categoria" -> field = "categoria";
+                                case "valor_base", "valorbase" -> field = "valorBase";
+                                case "nome" -> field = "nome";
+                                default -> throw new ServiceValidationException("Parâmetro de ordenação inválido");
+                        }
+                }
 
-            throw new ServiceValidationException(
-                    "categoria é obrigatória");
+                Sort.Direction direction = Sort.Direction.ASC;
+                if (orderDir != null && orderDir.trim().equalsIgnoreCase("desc")) {
+                        direction = Sort.Direction.DESC;
+                }
+
+                return Sort.by(direction, field).and(Sort.by(Sort.Direction.ASC, "id"));
         }
 
-        if (request.tipo_cobranca() == null) {
+        private void validateRequest(CreateServiceRequest request) {
+                if (request.valor_base() == null) {
+                        throw new ServiceValidationException("valor_base é obrigatório");
+                }
 
-            throw new ServiceValidationException(
-                    "tipo_cobranca é obrigatório");
-        }
-    }
+                if (request.valor_base().compareTo(BigDecimal.ZERO) < 0) {
+                        throw new ServiceValidationException("valor_base não pode ser negativo");
+                }
 
-    private UUID authenticatedUserId(
-            Authentication authentication) {
+                if (request.valor_base().scale() > 2) {
+                        throw new ServiceValidationException("valor_base deve possuir no máximo duas casas decimais");
+                }
 
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken) {
+                if (request.nome() == null || request.nome().trim().isEmpty()) {
+                        throw new ServiceValidationException("nome é obrigatório");
+                }
 
-            throw new UnauthenticatedException(
-                    "Usuário não autenticado");
-        }
+                if (request.categoria() == null || request.categoria().trim().isEmpty()) {
+                        throw new ServiceValidationException("categoria é obrigatória");
+                }
 
-        try {
-
-            return UUID.fromString(
-                    authentication.getName());
-
-        } catch (IllegalArgumentException exception) {
-
-            throw new UnauthenticatedException(
-                    "Usuário autenticado inválido");
-        }
-    }
-
-    private String normalizeDescription(
-            String description) {
-
-        if (description == null) {
-            return null;
+                if (request.tipo_cobranca() == null) {
+                        throw new ServiceValidationException("tipo_cobranca é obrigatório");
+                }
         }
 
-        String normalized =
-                description.trim();
+        private UUID authenticatedUserId(Authentication authentication) {
+                if (authentication == null
+                                || !authentication.isAuthenticated()
+                                || authentication instanceof AnonymousAuthenticationToken) {
 
-        return normalized.isEmpty()
-                ? null
-                : normalized;
-    }
+                        throw new UnauthenticatedException("Usuário não autenticado");
+                }
 
-    private ServiceResponse toResponse(
-            ServicesEntity entity) {
+                try {
+                        return UUID.fromString(authentication.getName());
+                } catch (IllegalArgumentException exception) {
+                        throw new UnauthenticatedException("Usuário autenticado inválido");
+                }
+        }
 
-        return new ServiceResponse(
-                entity.getId(),
-                entity.getNome(),
-                entity.getDescricao(),
-                entity.getCategoria(),
-                entity.getTipoCobranca(),
-                entity.getValorBase(),
-                entity.getCreatedBy(),
-                entity.getUpdatedBy(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
-    }
+        private String normalizeDescription(String description) {
+                if (description == null) {
+                        return null;
+                }
+                String normalized = description.trim();
+                return normalized.isEmpty() ? null : normalized;
+        }
+
+        private ServiceResponse toResponse(ServicesEntity entity) {
+                return new ServiceResponse(
+                                entity.getId(),
+                                entity.getNome(),
+                                entity.getDescricao(),
+                                entity.getCategoria(),
+                                entity.getTipoCobranca(),
+                                entity.getValorBase(),
+                                entity.getCreatedBy(),
+                                entity.getUpdatedBy(),
+                                entity.getCreatedAt(),
+                                entity.getUpdatedAt());
+        }
 }
