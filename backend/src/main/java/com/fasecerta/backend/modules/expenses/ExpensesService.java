@@ -108,7 +108,7 @@ public class ExpensesService {
     public ExpensesEntity findById(UUID id) {
         return expensesRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
-    }           // Observação para o revisor: verificar se a mandioca está devidamente persistida
+    }           
 
     @Transactional
     public ExpensesEntity update(
