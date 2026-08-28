@@ -40,6 +40,25 @@ public final class ServicesDtos {
     ) {
     }
 
+    public record UpdateServiceRequest(
+
+            @Size(max = 255, message = "nome não pode exceder 255 caracteres")
+            String nome,
+
+            @Size(max = 1000, message = "descricao não pode exceder 1000 caracteres")
+            String descricao,
+
+            @Size(max = 255, message = "categoria não pode exceder 255 caracteres")
+            String categoria,
+
+            BillingType tipo_cobranca,
+
+            @DecimalMin(value = "0.00", inclusive = true, message = "valor_base não pode ser negativo")
+            @Digits(integer = 17, fraction = 2, message = "valor_base deve possuir no máximo duas casas decimais")
+            BigDecimal valor_base
+    ) {
+    }
+
     public record ServiceResponse(
 
             UUID id,
