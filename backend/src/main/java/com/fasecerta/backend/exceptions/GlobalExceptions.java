@@ -12,13 +12,20 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.fasecerta.backend.modules.customer.CustomerConflictException;
 import com.fasecerta.backend.modules.customer.CustomerValidationException;
+import com.fasecerta.backend.modules.customer.CustomerNotFoundException;
 import com.fasecerta.backend.modules.services.ServiceValidationException;
 
 @RestControllerAdvice
 public class GlobalExceptions {
 
-        @ExceptionHandler(CustomerConflictException.class)
-        public ResponseEntity<Map<String, String>> handleConflict(CustomerConflictException exception) {
+        @ExceptionHandler(CustomerNotFoundException.class)
+        public ResponseEntity<Map<String, String>> handleCustomerNotFound(CustomerNotFoundException exception) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", exception.getMessage()));
+        }
+
+    @ExceptionHandler(CustomerConflictException.class)
+    public ResponseEntity<Map<String, String>> handleConflict(
+            CustomerConflictException exception) {
 
                 return ResponseEntity
                                 .status(HttpStatus.CONFLICT)
