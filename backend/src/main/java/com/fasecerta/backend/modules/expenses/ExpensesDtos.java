@@ -51,6 +51,7 @@ public final class ExpensesDtos {
     }
 
     public record UpdateExpenseRequest(
+        
             LocalDate data,
 
             @Pattern(regexp = "(?s).*\\S.*", message = "descricao não pode ser vazia")
@@ -83,5 +84,8 @@ public final class ExpensesDtos {
             int limit,
             int totalPages
     ) {
+    }
+
+    public record DeleteExpenseResponse(String message) {
     }
 }

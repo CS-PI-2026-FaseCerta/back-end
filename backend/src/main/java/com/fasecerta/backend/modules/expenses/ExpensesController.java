@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -81,5 +82,17 @@ public class ExpensesController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(expensesService.update(id, request, authentication));
+    }
+    
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated() and (hasAuthority('ADMIN') or hasRole('ADMIN'))")
+    public ResponseEntity<ExpensesDtos.DeleteExpenseResponse> remove(
+            @PathVariable UUID id,
+
+            Authentication authentication
+    ) {
+        expensesService.remove(id, authentication);
+        return ResponseEntity.ok(new ExpensesDtos.DeleteExpenseResponse("Despesa removida com sucesso"));
     }
 }

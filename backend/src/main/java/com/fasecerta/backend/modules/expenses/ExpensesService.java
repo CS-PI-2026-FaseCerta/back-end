@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -63,19 +64,24 @@ public class ExpensesService {
         if (categoria != null) {
             filters = filters.and((root, query, cb) -> cb.equal(root.get("categoria"), categoria));
         }
+
         if (pago != null) {
             filters = filters.and((root, query, cb) -> cb.equal(root.get("pago"), pago));
         }
+
         if (tipoPagamento != null) {
             filters = filters.and((root, query, cb) -> cb.equal(root.get("tipoPagamento"), tipoPagamento));
         }
+
         if (modoPagamento != null) {
             filters = filters.and((root, query, cb) -> cb.equal(root.get("modoPagamento"), modoPagamento));
         }
+
         if (dataInicial != null) {
             filters = filters.and((root, query, cb) ->
                     cb.greaterThanOrEqualTo(root.<LocalDate>get("data"), dataInicial));
         }
+
         if (dataFinal != null) {
             filters = filters.and((root, query, cb) ->
                     cb.lessThanOrEqualTo(root.<LocalDate>get("data"), dataFinal));
@@ -85,6 +91,7 @@ public class ExpensesService {
                 Sort.Order.desc("data"),
                 Sort.Order.desc("id")
         );
+
         PageRequest pageable = PageRequest.of(page - 1, limit, sort);
         Page<ExpensesEntity> result = expensesRepository.findAll(filters, pageable);
 
@@ -101,7 +108,7 @@ public class ExpensesService {
     public ExpensesEntity findById(UUID id) {
         return expensesRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
-    }
+    }           
 
     @Transactional
     public ExpensesEntity update(
@@ -140,6 +147,18 @@ public class ExpensesService {
 
         expense.setUpdatedBy(updatedBy);
         return expensesRepository.save(expense);
+    }
+    
+
+    @Transactional
+    public void remove(UUID id, Authentication authentication) {
+        UUID updatedBy = authenticatedUserId(authentication);
+        ExpensesEntity expense = expensesRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
+
+        expense.setUpdatedBy(updatedBy);
+        expense.setDeletedAt(LocalDateTime.now());
+        expensesRepository.save(expense);
     }
 
     private void validatePagination(int page, int limit) {
