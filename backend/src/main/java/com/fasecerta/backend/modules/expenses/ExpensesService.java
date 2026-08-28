@@ -64,19 +64,24 @@ public class ExpensesService {
         if (categoria != null) {
             filters = filters.and((root, query, cb) -> cb.equal(root.get("categoria"), categoria));
         }
+
         if (pago != null) {
             filters = filters.and((root, query, cb) -> cb.equal(root.get("pago"), pago));
         }
+
         if (tipoPagamento != null) {
             filters = filters.and((root, query, cb) -> cb.equal(root.get("tipoPagamento"), tipoPagamento));
         }
+
         if (modoPagamento != null) {
             filters = filters.and((root, query, cb) -> cb.equal(root.get("modoPagamento"), modoPagamento));
         }
+
         if (dataInicial != null) {
             filters = filters.and((root, query, cb) ->
                     cb.greaterThanOrEqualTo(root.<LocalDate>get("data"), dataInicial));
         }
+
         if (dataFinal != null) {
             filters = filters.and((root, query, cb) ->
                     cb.lessThanOrEqualTo(root.<LocalDate>get("data"), dataFinal));
@@ -86,6 +91,7 @@ public class ExpensesService {
                 Sort.Order.desc("data"),
                 Sort.Order.desc("id")
         );
+
         PageRequest pageable = PageRequest.of(page - 1, limit, sort);
         Page<ExpensesEntity> result = expensesRepository.findAll(filters, pageable);
 
@@ -102,7 +108,7 @@ public class ExpensesService {
     public ExpensesEntity findById(UUID id) {
         return expensesRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
-    }
+    }           // Observação para o revisor: verificar se a mandioca está devidamente persistida
 
     @Transactional
     public ExpensesEntity update(

@@ -83,11 +83,13 @@ public class ExpensesController {
     ) {
         return ResponseEntity.ok(expensesService.update(id, request, authentication));
     }
+    
 
     @DeleteMapping("/{id}")
     @PreAuthorize("isAuthenticated() and (hasAuthority('ADMIN') or hasRole('ADMIN'))")
     public ResponseEntity<ExpensesDtos.DeleteExpenseResponse> remove(
             @PathVariable UUID id,
+
             Authentication authentication
     ) {
         expensesService.remove(id, authentication);
