@@ -18,8 +18,7 @@ import com.fasecerta.backend.modules.services.ServiceValidationException;
 public class GlobalExceptions {
 
         @ExceptionHandler(CustomerConflictException.class)
-        public ResponseEntity<Map<String, String>> handleConflict(
-                        CustomerConflictException exception) {
+        public ResponseEntity<Map<String, String>> handleConflict(CustomerConflictException exception) {
 
                 return ResponseEntity
                                 .status(HttpStatus.CONFLICT)
@@ -40,8 +39,7 @@ public class GlobalExceptions {
         }
 
         @ExceptionHandler(ServiceValidationException.class)
-        public ResponseEntity<Map<String, String>> handleServiceValidation(
-                        ServiceValidationException exception) {
+        public ResponseEntity<Map<String, String>> handleServiceValidation(ServiceValidationException exception) {
 
                 return ResponseEntity
                                 .status(HttpStatus.BAD_REQUEST)
