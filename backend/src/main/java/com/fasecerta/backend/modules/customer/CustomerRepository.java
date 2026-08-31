@@ -4,9 +4,10 @@ import java.util.UUID;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 
-public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID> {
+public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID>, JpaSpecificationExecutor<CustomerEntity> {
     Optional<CustomerEntity> findByIdAndDeletedAtIsNull(UUID id);
     boolean existsByCpfAndDeletedAtIsNull(String cpf);
     boolean existsByCpfAndDeletedAtIsNullAndIdNot(String cpf, UUID id);

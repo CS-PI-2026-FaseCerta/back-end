@@ -14,7 +14,7 @@ public class V2__Create_expenses extends BaseJavaMigration {
         try (Statement statement = context.getConnection().createStatement()) {
             statement.execute("""
                     CREATE TABLE despesas (
-                        id BINARY(16) NOT NULL,
+                        id BINARY(16) NOT NULL, 
                         data DATE NOT NULL,
                         descricao TEXT NOT NULL,
                         pago_a TEXT NOT NULL,
