@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasecerta.backend.exceptions.UnauthenticatedException;
 import com.fasecerta.backend.modules.services.ServicesDtos.CreateServiceRequest;
 import com.fasecerta.backend.modules.services.ServicesDtos.ServiceResponse;
+import com.fasecerta.backend.modules.services.ServicesDtos.UpdateServiceRequest;
+import com.fasecerta.backend.shared.enums.BillingType;
 
 import lombok.RequiredArgsConstructor;
 
@@ -46,6 +48,61 @@ public class ServicesService {
                 servicesRepository.save(service);
 
         return toResponse(saved);
+    }
+
+    @Transactional
+    public ServiceResponse update(
+            UUID id,
+            UpdateServiceRequest request,
+            Authentication authentication) {
+
+        UUID authenticatedUserId =
+                authenticatedUserId(authentication);
+
+        ServicesEntity service = servicesRepository
+                .findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ServiceNotFoundException(
+                        "Serviço não encontrado"));
+
+        String nome = valueOrCurrent(request.nome(), service.getNome());
+        String categoria = valueOrCurrent(request.categoria(), service.getCategoria());
+        BillingType tipoCobranca = request.tipo_cobranca() != null
+                ? request.tipo_cobranca()
+                : service.getTipoCobranca();
+        BigDecimal valorBase = request.valor_base() != null
+                ? request.valor_base()
+                : service.getValorBase();
+        String descricao = request.descricao() != null
+                ? request.descricao()
+                : service.getDescricao();
+
+        validateRequest(new CreateServiceRequest(
+                nome,
+                descricao,
+                categoria,
+                tipoCobranca,
+                valorBase));
+
+        service.setNome(nome.trim());
+        service.setDescricao(normalizeDescription(descricao));
+        service.setCategoria(categoria.trim());
+        service.setTipoCobranca(tipoCobranca);
+        service.setValorBase(valorBase);
+        service.setUpdatedBy(authenticatedUserId);
+
+        ServicesEntity saved =
+                servicesRepository.save(service);
+
+        return toResponse(saved);
+    }
+
+    private String valueOrCurrent(
+            String incoming,
+            String current) {
+
+        return incoming != null
+                ? incoming
+                : current;
     }
 
     private void validateRequest(
