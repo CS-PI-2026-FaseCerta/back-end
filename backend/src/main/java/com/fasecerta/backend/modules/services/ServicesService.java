@@ -19,6 +19,7 @@ import com.fasecerta.backend.exceptions.UnauthenticatedException;
 import com.fasecerta.backend.modules.services.ServicesDtos.CreateServiceRequest;
 import com.fasecerta.backend.modules.services.ServicesDtos.ServicePageResponse;
 import com.fasecerta.backend.modules.services.ServicesDtos.ServiceResponse;
+import com.fasecerta.backend.modules.services.ServicesDtos.UpdateServiceRequest;
 import com.fasecerta.backend.shared.enums.BillingType;
 
 @Service
@@ -53,6 +54,64 @@ public class ServicesService {
                 ServicesEntity saved = servicesRepository.save(service);
 
                 return toResponse(saved);
+        }
+
+        @Transactional
+        public ServiceResponse update(
+                        UUID id,
+                        UpdateServiceRequest request,
+                        Authentication authentication) {
+
+                UUID updatedBy = authenticatedUserId(authentication);
+
+                validateUpdateRequest(request);
+
+                ServicesEntity service = servicesRepository.findByIdAndDeletedAtIsNull(id)
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Serviço não encontrado"));
+
+                if (request.nome() != null) {
+                        String nome = request.nome().trim();
+
+                        if (nome.isEmpty()) {
+                                throw new ResponseStatusException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "nome não pode ser vazio");
+                        }
+
+                        service.setNome(nome);
+                }
+
+                if (request.descricao() != null) {
+                        service.setDescricao(normalizeDescription(request.descricao()));
+                }
+
+                if (request.categoria() != null) {
+                        String categoria = request.categoria().trim();
+
+                        if (categoria.isEmpty()) {
+                                throw new ResponseStatusException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "categoria não pode ser vazia");
+                        }
+
+                        service.setCategoria(categoria);
+                }
+
+                if (request.tipo_cobranca() != null) {
+                        service.setTipoCobranca(request.tipo_cobranca());
+                }
+
+                if (request.valor_base() != null) {
+                        service.setValorBase(request.valor_base());
+                }
+
+                service.setUpdatedBy(updatedBy);
+
+                ServicesEntity updated = servicesRepository.save(service);
+
+                return toResponse(updated);
         }
 
         @Transactional(readOnly = true)
@@ -98,7 +157,8 @@ public class ServicesService {
         public ServiceResponse findById(UUID id) {
                 return servicesRepository.findByIdAndDeletedAtIsNull(id)
                                 .map(this::toResponse)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
                                                 "Serviço não encontrado"));
         }
 
@@ -107,7 +167,9 @@ public class ServicesService {
                 UUID updatedBy = authenticatedUserId(authentication);
 
                 ServicesEntity service = servicesRepository.findByIdAndDeletedAtIsNull(id)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Serviço não encontrado"));
+                                .orElseThrow(() -> new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Serviço não encontrado"));
 
                 service.setUpdatedBy(updatedBy);
                 service.setDeletedAt(LocalDateTime.now());
@@ -119,6 +181,7 @@ public class ServicesService {
                 if (page < 1) {
                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1");
                 }
+
                 if (limit < 1 || limit > MAX_PAGE_SIZE) {
                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "limit deve estar entre 1 e " + MAX_PAGE_SIZE);
                 }
@@ -126,17 +189,22 @@ public class ServicesService {
 
         private Sort buildSort(String orderBy, String orderDir) {
                 String field = "nome";
+
                 if (orderBy != null && !orderBy.trim().isEmpty()) {
                         String sanitizedOrder = orderBy.trim().toLowerCase();
+
                         switch (sanitizedOrder) {
                                 case "categoria" -> field = "categoria";
                                 case "valor_base", "valorbase" -> field = "valorBase";
                                 case "nome" -> field = "nome";
-                                default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Parâmetro de ordenação inválido");
+                                default -> throw new ResponseStatusException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "Parâmetro de ordenação inválido");
                         }
                 }
 
                 Sort.Direction direction = Sort.Direction.ASC;
+
                 if (orderDir != null && orderDir.trim().equalsIgnoreCase("desc")) {
                         direction = Sort.Direction.DESC;
                 }
@@ -154,8 +222,7 @@ public class ServicesService {
                 }
 
                 if (request.valor_base().scale() > 2) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                                        "valor_base deve possuir no máximo duas casas decimais");
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor_base deve possuir no máximo duas casas decimais");
                 }
 
                 if (request.nome() == null || request.nome().trim().isEmpty()) {
@@ -168,6 +235,27 @@ public class ServicesService {
 
                 if (request.tipo_cobranca() == null) {
                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "tipo_cobranca é obrigatório");
+                }
+        }
+
+        private void validateUpdateRequest(UpdateServiceRequest request) {
+                if (request.nome() == null
+                                && request.descricao() == null
+                                && request.categoria() == null
+                                && request.tipo_cobranca() == null
+                                && request.valor_base() == null) {
+
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ao menos um campo deve ser informado para atualização");
+                }
+
+                if (request.valor_base() != null) {
+                        if (request.valor_base().compareTo(BigDecimal.ZERO) < 0) {
+                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"valor_base não pode ser negativo");
+                        }
+
+                        if (request.valor_base().scale() > 2) {
+                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor_base deve possuir no máximo duas casas decimais");
+                        }
                 }
         }
 
@@ -190,7 +278,9 @@ public class ServicesService {
                 if (description == null) {
                         return null;
                 }
+
                 String normalized = description.trim();
+
                 return normalized.isEmpty() ? null : normalized;
         }
 
