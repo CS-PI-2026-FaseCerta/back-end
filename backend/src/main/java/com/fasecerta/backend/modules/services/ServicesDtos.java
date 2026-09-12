@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
+import jakarta.validation.constraints.Size;
 
 public final class ServicesDtos {
 
@@ -19,17 +20,40 @@ public final class ServicesDtos {
         }
 
         public record CreateServiceRequest(
-                        @NotBlank(message = "nome é obrigatório") String nome,
+                        @NotBlank(message = "nome é obrigatório") 
+                        String nome,
 
                         String descricao,
 
-                        @NotBlank(message = "categoria é obrigatória") String categoria,
+                        @NotBlank(message = "categoria é obrigatória") 
+                        String categoria,
 
-                        @NotNull(message = "tipo_cobranca é obrigatório") BillingType tipo_cobranca,
+                        @NotNull(message = "tipo_cobranca é obrigatório") 
+                        BillingType tipo_cobranca,
 
-                        @NotNull(message = "valor_base é obrigatório") @DecimalMin(value = "0.0", inclusive = true, message = "valor_base não pode ser negativo") @Digits(integer = 17, fraction = 2, message = "valor_base deve possuir no máximo duas casas decimais") BigDecimal valor_base,
+                        @NotNull(message = "valor_base é obrigatório") 
+                        @DecimalMin(value = "0.0", inclusive = true, message = "valor_base não pode ser negativo") 
+                        @Digits(integer = 17, fraction = 2, message = "valor_base deve possuir no máximo duas casas decimais") 
+                        BigDecimal valor_base,
 
-                        @Null(message = "created_by é preenchido automaticamente pelo usuário autenticado") UUID created_by) {
+                        @Null(message = "created_by é preenchido automaticamente pelo usuário autenticado") 
+                        UUID created_by) {
+        }
+
+        public record UpdateServiceRequest(
+
+                        @Size(max = 255, message = "nome não pode exceder 255 caracteres") 
+                        String nome,
+
+                        String descricao,
+                        
+                        @Size(max = 255, message = "categoria não pode exceder 255 caracteres") 
+                        String categoria,
+
+                        BillingType tipo_cobranca,
+                        @DecimalMin(value = "0.0", inclusive = true, message = "valor_base não pode ser negativo") 
+                        @Digits(integer = 17, fraction = 2, message = "valor_base deve possuir no máximo duas casas decimais") 
+                        BigDecimal valor_base) {
         }
 
         public record ServiceResponse(
