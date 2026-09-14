@@ -108,6 +108,7 @@ public class ServicesService {
                 }
 
                 service.setUpdatedBy(updatedBy);
+                service.setUpdatedAt(LocalDateTime.now());
 
                 ServicesEntity updated = servicesRepository.save(service);
 
@@ -172,6 +173,7 @@ public class ServicesService {
                                                 "Serviço não encontrado"));
 
                 service.setUpdatedBy(updatedBy);
+                service.setUpdatedAt(LocalDateTime.now());
                 service.setDeletedAt(LocalDateTime.now());
 
                 servicesRepository.save(service);
