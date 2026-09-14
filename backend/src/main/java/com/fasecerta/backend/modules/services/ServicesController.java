@@ -14,11 +14,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 import com.fasecerta.backend.modules.services.ServicesDtos.CreateServiceRequest;
 import com.fasecerta.backend.modules.services.ServicesDtos.DeleteServiceResponse;
 import com.fasecerta.backend.modules.services.ServicesDtos.ServicePageResponse;
 import com.fasecerta.backend.modules.services.ServicesDtos.ServiceResponse;
+import com.fasecerta.backend.modules.services.ServicesDtos.UpdateServiceRequest;
 import com.fasecerta.backend.shared.enums.BillingType;
 
 import jakarta.validation.Valid;
@@ -67,6 +69,15 @@ public class ServicesController {
         @PreAuthorize("isAuthenticated()")
         public ResponseEntity<ServiceResponse> findById(@PathVariable UUID id) {
                 return ResponseEntity.ok(servicesService.findById(id));
+        }
+
+        @PatchMapping("/{id}")
+        @PreAuthorize("isAuthenticated() and (hasAuthority('ADMIN') or hasRole('ADMIN') or hasAuthority('GESTOR') or hasRole('GESTOR'))")
+        public ResponseEntity<ServiceResponse> update(
+                        @PathVariable UUID id,
+                        @Valid @RequestBody UpdateServiceRequest request,
+                        Authentication authentication) {
+                return ResponseEntity.ok(servicesService.update(id, request, authentication));
         }
 
         @DeleteMapping("/{id}")
