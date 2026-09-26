@@ -33,6 +33,7 @@ public class UserService {
         UserEntity user = new UserEntity();
         user.setUsername(usernameNormalizado);
         user.setEmail(emailNormalizado);
+        user.setEmailAtivo(emailNormalizado);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setPerfil(UserProfile.TECNICO);
         user.setCreatedAt(now);

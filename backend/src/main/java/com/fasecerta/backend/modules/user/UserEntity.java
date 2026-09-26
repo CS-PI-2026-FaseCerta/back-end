@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "usuarios")
-@SQLDelete(sql = "UPDATE usuarios SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLDelete(sql = "UPDATE usuarios SET deleted_at = CURRENT_TIMESTAMP, email_ativo = NULL WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 @Data
 public class UserEntity {
@@ -33,6 +33,9 @@ public class UserEntity {
 
     @Column(nullable = false, length = 150)
     private String email;
+
+    @Column(name = "email_ativo", length = 150, unique = true)
+    private String emailAtivo;
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
