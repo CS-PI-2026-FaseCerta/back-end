@@ -37,6 +37,7 @@ public class ServicesService {
         public ServiceResponse create(
                         CreateServiceRequest request,
                         Authentication authentication) {
+
                 UUID authenticatedUserId = authenticatedUserId(authentication);
 
                 validateRequest(request);
@@ -49,7 +50,11 @@ public class ServicesService {
                 service.setTipoCobranca(request.tipo_cobranca());
                 service.setValorBase(request.valor_base());
                 service.setCreatedBy(authenticatedUserId);
-                service.setCreatedAt(LocalDateTime.now());
+
+                LocalDateTime now = LocalDateTime.now();
+
+                service.setCreatedAt(now);
+                service.setUpdatedAt(now);
 
                 ServicesEntity saved = servicesRepository.save(service);
 
@@ -124,17 +129,20 @@ public class ServicesService {
                         BillingType tipoCobranca,
                         String orderBy,
                         String orderDir) {
+
                 validatePagination(page, limit);
 
                 Specification<ServicesEntity> filters = (root, query, cb) -> cb.isNull(root.get("deletedAt"));
 
                 if (nome != null && !nome.trim().isEmpty()) {
-                        filters = filters.and((root, query, cb) -> cb.like(cb.lower(root.get("nome")),
+                        filters = filters.and((root, query, cb) -> cb.like(
+                                        cb.lower(root.get("nome")),
                                         "%" + nome.trim().toLowerCase() + "%"));
                 }
 
                 if (categoria != null && !categoria.trim().isEmpty()) {
-                        filters = filters.and((root, query, cb) -> cb.equal(cb.lower(root.get("categoria")),
+                        filters = filters.and((root, query, cb) -> cb.equal(
+                                        cb.lower(root.get("categoria")),
                                         categoria.trim().toLowerCase()));
                 }
 
@@ -143,11 +151,18 @@ public class ServicesService {
                 }
 
                 Sort sort = buildSort(orderBy, orderDir);
-                PageRequest pageable = PageRequest.of(page - 1, limit, sort);
+
+                PageRequest pageable = PageRequest.of(
+                                page - 1,
+                                limit,
+                                sort);
+
                 Page<ServicesEntity> result = servicesRepository.findAll(filters, pageable);
 
                 return new ServicePageResponse(
-                                result.getContent().stream().map(this::toResponse).toList(),
+                                result.getContent().stream()
+                                                .map(this::toResponse)
+                                                .toList(),
                                 result.getTotalElements(),
                                 page,
                                 limit,
@@ -172,20 +187,26 @@ public class ServicesService {
                                                 HttpStatus.NOT_FOUND,
                                                 "Serviço não encontrado"));
 
+                LocalDateTime now = LocalDateTime.now();
+
                 service.setUpdatedBy(updatedBy);
-                service.setUpdatedAt(LocalDateTime.now());
-                service.setDeletedAt(LocalDateTime.now());
+                service.setUpdatedAt(now);
+                service.setDeletedAt(now);
 
                 servicesRepository.save(service);
         }
 
         private void validatePagination(int page, int limit) {
                 if (page < 1) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1");
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "page deve ser maior ou igual a 1");
                 }
 
                 if (limit < 1 || limit > MAX_PAGE_SIZE) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "limit deve estar entre 1 e " + MAX_PAGE_SIZE);
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "limit deve estar entre 1 e " + MAX_PAGE_SIZE);
                 }
         }
 
@@ -207,36 +228,52 @@ public class ServicesService {
 
                 Sort.Direction direction = Sort.Direction.ASC;
 
-                if (orderDir != null && orderDir.trim().equalsIgnoreCase("desc")) {
+                if (orderDir != null &&
+                                orderDir.trim().equalsIgnoreCase("desc")) {
                         direction = Sort.Direction.DESC;
                 }
 
-                return Sort.by(direction, field).and(Sort.by(Sort.Direction.ASC, "id"));
+                return Sort.by(direction, field)
+                                .and(Sort.by(Sort.Direction.ASC, "id"));
         }
 
         private void validateRequest(CreateServiceRequest request) {
                 if (request.valor_base() == null) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor_base é obrigatório");
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "valor_base é obrigatório");
                 }
 
                 if (request.valor_base().compareTo(BigDecimal.ZERO) < 0) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor_base não pode ser negativo");
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "valor_base não pode ser negativo");
                 }
 
                 if (request.valor_base().scale() > 2) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor_base deve possuir no máximo duas casas decimais");
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "valor_base deve possuir no máximo duas casas decimais");
                 }
 
-                if (request.nome() == null || request.nome().trim().isEmpty()) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "nome é obrigatório");
+                if (request.nome() == null ||
+                                request.nome().trim().isEmpty()) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "nome é obrigatório");
                 }
 
-                if (request.categoria() == null || request.categoria().trim().isEmpty()) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "categoria é obrigatória");
+                if (request.categoria() == null ||
+                                request.categoria().trim().isEmpty()) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "categoria é obrigatória");
                 }
 
                 if (request.tipo_cobranca() == null) {
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "tipo_cobranca é obrigatório");
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "tipo_cobranca é obrigatório");
                 }
         }
 
@@ -247,16 +284,22 @@ public class ServicesService {
                                 && request.tipo_cobranca() == null
                                 && request.valor_base() == null) {
 
-                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ao menos um campo deve ser informado para atualização");
+                        throw new ResponseStatusException(
+                                        HttpStatus.BAD_REQUEST,
+                                        "Ao menos um campo deve ser informado para atualização");
                 }
 
                 if (request.valor_base() != null) {
                         if (request.valor_base().compareTo(BigDecimal.ZERO) < 0) {
-                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"valor_base não pode ser negativo");
+                                throw new ResponseStatusException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "valor_base não pode ser negativo");
                         }
 
                         if (request.valor_base().scale() > 2) {
-                                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "valor_base deve possuir no máximo duas casas decimais");
+                                throw new ResponseStatusException(
+                                                HttpStatus.BAD_REQUEST,
+                                                "valor_base deve possuir no máximo duas casas decimais");
                         }
                 }
         }
@@ -266,13 +309,15 @@ public class ServicesService {
                                 || !authentication.isAuthenticated()
                                 || authentication instanceof AnonymousAuthenticationToken) {
 
-                        throw new UnauthenticatedException("Usuário não autenticado");
+                        throw new UnauthenticatedException(
+                                        "Usuário não autenticado");
                 }
 
                 try {
                         return UUID.fromString(authentication.getName());
                 } catch (IllegalArgumentException exception) {
-                        throw new UnauthenticatedException("Usuário autenticado inválido");
+                        throw new UnauthenticatedException(
+                                        "Usuário autenticado inválido");
                 }
         }
 
