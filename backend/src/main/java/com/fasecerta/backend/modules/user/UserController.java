@@ -19,7 +19,7 @@ public class UserController {
     public ResponseEntity<UserResponse> register(
             @Valid @RequestBody RegisterUserRequest request) {
 
-        UserResponse response = userService.registerPublicUser(request);
+        UserResponse response = userService.registerUser(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)

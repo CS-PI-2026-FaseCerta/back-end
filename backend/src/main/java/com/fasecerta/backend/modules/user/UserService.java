@@ -19,7 +19,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public UserResponse registerPublicUser(RegisterUserRequest request) {
+    public UserResponse registerUser(RegisterUserRequest request) {
 
         String usernameNormalizado = request.username().trim();
         String emailNormalizado = request.email().trim().toLowerCase();
