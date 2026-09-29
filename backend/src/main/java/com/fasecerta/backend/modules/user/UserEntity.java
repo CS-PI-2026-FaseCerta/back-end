@@ -31,7 +31,7 @@ public class UserEntity {
     @Column(name = "username", nullable = false, length = 150)
     private String username;
 
-    @Column(nullable = false, length = 150)
+    @Column(name = "email", nullable = false, length = 150)
     private String email;
 
     @Column(name = "email_ativo", length = 150, unique = true)
@@ -41,7 +41,7 @@ public class UserEntity {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "perfil", nullable = false, length = 20)
     private UserProfile perfil;
 
     @Column(name = "created_at", nullable = false)
@@ -52,4 +52,10 @@ public class UserEntity {
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    @Column(name = "created_by")
+    private UUID createdBy;
+
+    @Column(name = "updated_by")
+    private UUID updatedBy;
 }
