@@ -48,6 +48,17 @@ class AuthServiceTest {
     }
 
     @Test
+    void uppercaseEmailIsLowercasedBeforeLookup() {
+        when(provider.findByEmail("user@email.com")).thenReturn(Optional.empty());
+
+        assertThrows(InvalidCredentialsException.class,
+                () -> authService.login(new LoginRequest("USER@EMAIL.COM", "senha")));
+
+        verify(provider).findByEmail("user@email.com");
+        verify(passwordEncoder).matches("senha", "dummy-hash");
+    }
+
+    @Test
     void unknownEmailAndWrongPasswordHaveTheSameFailure() {
         when(provider.findByEmail("ausente@email.com")).thenReturn(Optional.empty());
         when(provider.findByEmail("usuario@email.com")).thenReturn(Optional.of(user));

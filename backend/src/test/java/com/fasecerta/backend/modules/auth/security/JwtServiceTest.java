@@ -2,6 +2,7 @@ package com.fasecerta.backend.modules.auth.security;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -21,12 +22,16 @@ class JwtServiceTest {
 
         assertEquals(3, token.split("\\.").length);
         assertTrue(jwtService.isValid(token));
-        JwtService.JwtClaims claims = jwtService.parseValidToken(token).orElseThrow();
-        assertEquals(userId, claims.subject());
-        assertEquals("ADMIN", claims.role());
-        assertNotNull(claims.issuedAt());
-        assertNotNull(claims.expiresAt());
-        assertTrue(claims.expiresAt().isAfter(claims.issuedAt()));
+        Claims claims = Jwts.parser()
+                .verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        assertEquals(userId.toString(), claims.getSubject());
+        assertEquals("ADMIN", claims.get("role", String.class));
+        assertNotNull(claims.getIssuedAt());
+        assertNotNull(claims.getExpiration());
+        assertTrue(claims.getExpiration().after(claims.getIssuedAt()));
     }
 
     @Test
