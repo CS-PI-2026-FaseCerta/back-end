@@ -58,6 +58,8 @@ public class UserService {
         user.setPerfil(request.perfil());
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
+        user.setCreatedBy(authenticatedUserId);
+        user.setUpdatedBy(authenticatedUserId);
 
         try {
             UserEntity saved = userRepository.saveAndFlush(user);
