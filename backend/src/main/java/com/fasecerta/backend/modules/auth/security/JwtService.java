@@ -25,8 +25,8 @@ public class JwtService {
         if (secretBytes.length < 32) {
             throw new IllegalArgumentException("JWT_SECRET deve ter pelo menos 32 bytes UTF-8");
         }
-        if (expirationMillis <= 0) {
-            throw new IllegalArgumentException("JWT_EXPIRATION deve ser positivo");
+        if (expirationMillis < 1_000) {
+            throw new IllegalArgumentException("JWT_EXPIRATION deve ser de no mínimo 1000 ms");
         }
         this.signingKey = Keys.hmacShaKeyFor(secretBytes);
         this.expirationMillis = expirationMillis;

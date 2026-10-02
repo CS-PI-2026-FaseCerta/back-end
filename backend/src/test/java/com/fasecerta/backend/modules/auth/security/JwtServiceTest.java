@@ -16,6 +16,23 @@ class JwtServiceTest {
     private final JwtService jwtService = new JwtService(SECRET, 3_600_000);
 
     @Test
+    void expirationBelowOneSecondIsRejectedAtConstruction() {
+        for (long expirationMillis : new long[] { -1, 0, 1, 999 }) {
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                    () -> new JwtService(SECRET, expirationMillis));
+            assertEquals("JWT_EXPIRATION deve ser de no mínimo 1000 ms", exception.getMessage());
+        }
+    }
+
+    @Test
+    void expirationFromOneSecondIsAccepted() {
+        for (long expirationMillis : new long[] { 1_000, 1_001, 3_600_000 }) {
+            JwtService service = assertDoesNotThrow(() -> new JwtService(SECRET, expirationMillis));
+            assertNotNull(service.generateToken(UUID.randomUUID(), "ADMIN"));
+        }
+    }
+
+    @Test
     void generatedTokenContainsRequiredClaimsAndIsValid() {
         UUID userId = UUID.randomUUID();
         String token = jwtService.generateToken(userId, "ADMIN");
