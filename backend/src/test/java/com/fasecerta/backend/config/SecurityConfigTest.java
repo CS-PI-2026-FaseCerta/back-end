@@ -20,9 +20,11 @@ import java.util.Date;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,12 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(AuthController.class)
 @Import({SecurityConfig.class, JwtService.class, SecurityConfigTest.ProtectedController.class})
-@TestPropertySource(properties = {
-        "jwt.secret=security-config-test-secret-with-32-bytes-12345",
-        "jwt.expiration=60000"
-})
+@ActiveProfiles("test")
+@TestPropertySource(properties = "jwt.expiration=60000")
 class SecurityConfigTest {
-    private static final String TEST_SECRET = "security-config-test-secret-with-32-bytes-12345";
+    @Value("${jwt.secret}")
+    private String testSecret;
 
     @Autowired
     private MockMvc mockMvc;
@@ -73,7 +74,7 @@ class SecurityConfigTest {
                 .claim("role", "ADMIN")
                 .issuedAt(Date.from(issuedAt))
                 .expiration(Date.from(issuedAt.plusSeconds(60)))
-                .signWith(Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8)), Jwts.SIG.HS256)
+                .signWith(Keys.hmacShaKeyFor(testSecret.getBytes(StandardCharsets.UTF_8)), Jwts.SIG.HS256)
                 .compact();
 
         assertUnauthorized("Bearer " + token);
