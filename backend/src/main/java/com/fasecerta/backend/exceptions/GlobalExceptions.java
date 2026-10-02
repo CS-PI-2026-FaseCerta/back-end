@@ -11,27 +11,30 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.fasecerta.backend.modules.customer.CustomerConflictException;
-import com.fasecerta.backend.modules.customer.CustomerValidationException;
 import com.fasecerta.backend.modules.customer.CustomerNotFoundException;
+import com.fasecerta.backend.modules.customer.CustomerValidationException;
 import com.fasecerta.backend.modules.services.ServiceValidationException;
+import com.fasecerta.backend.modules.user.UserConflictException;
 
 @RestControllerAdvice
 public class GlobalExceptions {
 
         @ExceptionHandler(CustomerNotFoundException.class)
-        public ResponseEntity<Map<String, String>> handleCustomerNotFound(CustomerNotFoundException exception) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", exception.getMessage()));
+        public ResponseEntity<Map<String, String>> handleCustomerNotFound(
+                        CustomerNotFoundException exception) {
+
+                return ResponseEntity
+                                .status(HttpStatus.NOT_FOUND)
+                                .body(Map.of("message", exception.getMessage()));
         }
 
-    @ExceptionHandler(CustomerConflictException.class)
-    public ResponseEntity<Map<String, String>> handleConflict(
-            CustomerConflictException exception) {
+        @ExceptionHandler(CustomerConflictException.class)
+        public ResponseEntity<Map<String, String>> handleConflict(
+                        CustomerConflictException exception) {
 
                 return ResponseEntity
                                 .status(HttpStatus.CONFLICT)
-                                .body(Map.of(
-                                                "message",
-                                                exception.getMessage()));
+                                .body(Map.of("message", exception.getMessage()));
         }
 
         @ExceptionHandler(CustomerValidationException.class)
@@ -40,19 +43,16 @@ public class GlobalExceptions {
 
                 return ResponseEntity
                                 .status(HttpStatus.BAD_REQUEST)
-                                .body(Map.of(
-                                                "message",
-                                                exception.getMessage()));
+                                .body(Map.of("message", exception.getMessage()));
         }
 
         @ExceptionHandler(ServiceValidationException.class)
-        public ResponseEntity<Map<String, String>> handleServiceValidation(ServiceValidationException exception) {
+        public ResponseEntity<Map<String, String>> handleServiceValidation(
+                        ServiceValidationException exception) {
 
                 return ResponseEntity
                                 .status(HttpStatus.BAD_REQUEST)
-                                .body(Map.of(
-                                                "message",
-                                                exception.getMessage()));
+                                .body(Map.of("message", exception.getMessage()));
         }
 
         @ExceptionHandler(UnauthenticatedException.class)
@@ -61,9 +61,7 @@ public class GlobalExceptions {
 
                 return ResponseEntity
                                 .status(HttpStatus.UNAUTHORIZED)
-                                .body(Map.of(
-                                                "message",
-                                                exception.getMessage()));
+                                .body(Map.of("message", exception.getMessage()));
         }
 
         @ExceptionHandler(ResponseStatusException.class)
@@ -74,7 +72,8 @@ public class GlobalExceptions {
                                 .status(exception.getStatusCode())
                                 .body(Map.of(
                                                 "message",
-                                                exception.getReason() != null ? exception.getReason()
+                                                exception.getReason() != null
+                                                                ? exception.getReason()
                                                                 : "Erro no servidor"));
         }
 
@@ -90,8 +89,15 @@ public class GlobalExceptions {
 
                 return ResponseEntity
                                 .status(HttpStatus.BAD_REQUEST)
-                                .body(Map.of(
-                                                "message",
-                                                message));
+                                .body(Map.of("message", message));
         }
+
+    @ExceptionHandler(UserConflictException.class)
+    public ResponseEntity<Map<String, String>> handleUserConflict(
+            UserConflictException exception) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of("message", exception.getMessage()));
+    }
 }
