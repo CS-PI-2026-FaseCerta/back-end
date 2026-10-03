@@ -12,6 +12,7 @@ import com.fasecerta.backend.modules.auth.dto.LoginResponse;
 import com.fasecerta.backend.modules.auth.exception.InvalidCredentialsException;
 import com.fasecerta.backend.modules.auth.port.AuthenticatedUser;
 import com.fasecerta.backend.modules.auth.port.AuthenticationUserProvider;
+import com.fasecerta.backend.modules.auth.ratelimit.LoginRateLimiter;
 import com.fasecerta.backend.modules.auth.security.JwtService;
 import com.fasecerta.backend.modules.auth.service.AuthService;
 import java.util.Optional;
@@ -34,7 +35,7 @@ class AuthControllerTest {
     void setUp() {
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
-        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new AuthController(authService, new LoginRateLimiter(5, 60)))
                 .setControllerAdvice(new GlobalExceptions())
                 .setValidator(validator)
                 .build();
@@ -81,7 +82,8 @@ class AuthControllerTest {
                 new AuthenticatedUser(UUID.randomUUID(), "usuario@email.com", "hash", "ADMIN")));
         when(passwordEncoder.matches("errada", "hash")).thenReturn(false);
         MockMvc realServiceMvc = MockMvcBuilders.standaloneSetup(
-                        new AuthController(new AuthService(providerHandle, passwordEncoder, jwtService)))
+                        new AuthController(new AuthService(providerHandle, passwordEncoder, jwtService),
+                                new LoginRateLimiter(5, 60)))
                 .setControllerAdvice(new GlobalExceptions())
                 .build();
 

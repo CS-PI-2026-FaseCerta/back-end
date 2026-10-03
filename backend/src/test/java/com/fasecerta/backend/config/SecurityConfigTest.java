@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasecerta.backend.modules.auth.controller.AuthController;
 import com.fasecerta.backend.modules.auth.dto.LoginResponse;
+import com.fasecerta.backend.modules.auth.ratelimit.LoginRateLimiter;
 import com.fasecerta.backend.modules.auth.security.JwtService;
 import com.fasecerta.backend.modules.auth.service.AuthService;
 import io.jsonwebtoken.Jwts;
@@ -32,9 +33,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(AuthController.class)
-@Import({SecurityConfig.class, JwtService.class, SecurityConfigTest.ProtectedController.class})
+@Import({SecurityConfig.class, JwtService.class, LoginRateLimiter.class,
+        SecurityConfigTest.ProtectedController.class})
 @ActiveProfiles("test")
-@TestPropertySource(properties = "jwt.expiration=60000")
+@TestPropertySource(properties = {
+        "jwt.expiration=60000",
+        "auth.rate-limit.max-attempts=2",
+        "auth.rate-limit.window-seconds=60"
+})
 class SecurityConfigTest {
     @Value("${jwt.secret}")
     private String testSecret;
@@ -57,6 +63,38 @@ class SecurityConfigTest {
                         .content("{\"email\":\"usuario@email.com\",\"password\":\"senha\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("signed-token"));
+    }
+
+    @Test
+    void configuredRateLimitAppliesOnlyToLogin() throws Exception {
+        when(authService.login(any())).thenReturn(new LoginResponse("signed-token"));
+        for (int i = 0; i < 2; i++) {
+            mockMvc.perform(post("/api/auth/login")
+                            .with(request -> {
+                                request.setRemoteAddr("192.0.2.55");
+                                return request;
+                            })
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"email\":\"usuario@email.com\",\"password\":\"senha\"}"))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(post("/api/auth/login")
+                        .with(request -> {
+                            request.setRemoteAddr("192.0.2.55");
+                            return request;
+                        })
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"usuario@email.com\",\"password\":\"senha\"}"))
+                .andExpect(status().isTooManyRequests());
+
+        String token = jwtService.generateToken(UUID.randomUUID(), "ADMIN");
+        mockMvc.perform(get("/test/protected")
+                        .with(request -> {
+                            request.setRemoteAddr("192.0.2.55");
+                            return request;
+                        })
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
     }
 
     @Test

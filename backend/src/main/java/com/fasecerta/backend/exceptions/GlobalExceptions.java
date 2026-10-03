@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,12 +13,20 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.fasecerta.backend.modules.customer.CustomerConflictException;
 import com.fasecerta.backend.modules.auth.exception.InvalidCredentialsException;
+import com.fasecerta.backend.modules.auth.exception.TooManyLoginAttemptsException;
 import com.fasecerta.backend.modules.customer.CustomerValidationException;
 import com.fasecerta.backend.modules.customer.CustomerNotFoundException;
 import com.fasecerta.backend.modules.services.ServiceValidationException;
 
 @RestControllerAdvice
 public class GlobalExceptions {
+
+        @ExceptionHandler(TooManyLoginAttemptsException.class)
+        public ResponseEntity<Map<String, String>> handleTooManyLoginAttempts(TooManyLoginAttemptsException exception) {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                                .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
+                                .body(Map.of("message", exception.getMessage()));
+        }
 
         @ExceptionHandler(InvalidCredentialsException.class)
         public ResponseEntity<Map<String, String>> handleInvalidCredentials(InvalidCredentialsException exception) {
