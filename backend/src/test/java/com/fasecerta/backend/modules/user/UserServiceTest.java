@@ -56,7 +56,7 @@ class UserServiceTest {
 
         @Test
         void primeiroUsuarioPodeSerAdminSemAuthentication() {
-                when(userRepository.existsAnyUser()).thenReturn(false);
+                when(userRepository.countAnyUser()).thenReturn(0L);
                 when(userRepository.existsByEmailAndDeletedAtIsNull(anyString()))
                                 .thenReturn(false);
                 when(passwordEncoder.encode(anyString()))
@@ -97,7 +97,7 @@ class UserServiceTest {
 
         @Test
         void primeiroUsuarioGestorDeveSerRecusado() {
-                when(userRepository.existsAnyUser()).thenReturn(false);
+                when(userRepository.countAnyUser()).thenReturn(0L);
 
                 RegisterUserRequest request = request(
                                 "Gestor",
@@ -117,7 +117,7 @@ class UserServiceTest {
 
         @Test
         void primeiroUsuarioTecnicoDeveSerRecusado() {
-                when(userRepository.existsAnyUser()).thenReturn(false);
+                when(userRepository.countAnyUser()).thenReturn(0L);
 
                 RegisterUserRequest request = request(
                                 "Tecnico",
@@ -137,7 +137,7 @@ class UserServiceTest {
 
         @Test
         void segundoCadastroSemAuthenticationDeveSerRecusado() {
-                when(userRepository.existsAnyUser()).thenReturn(true);
+                when(userRepository.countAnyUser()).thenReturn(1L);
 
                 RegisterUserRequest request = request(
                                 "Gestor",
@@ -156,7 +156,7 @@ class UserServiceTest {
 
         @Test
         void segundoCadastroComAuthenticationNaoEncontradaDeveSerRecusado() {
-                when(userRepository.existsAnyUser()).thenReturn(true);
+                when(userRepository.countAnyUser()).thenReturn(1L);
 
                 UUID usuarioId = UUID.randomUUID();
 
@@ -472,8 +472,8 @@ class UserServiceTest {
         }
 
         private void prepararUsuarioAutenticado(UserEntity usuario) {
-                when(userRepository.existsAnyUser())
-                                .thenReturn(true);
+                when(userRepository.countAnyUser())
+                                .thenReturn(1L);
 
                 when(userRepository.findByIdAndDeletedAtIsNull(usuario.getId()))
                                 .thenReturn(java.util.Optional.of(usuario));

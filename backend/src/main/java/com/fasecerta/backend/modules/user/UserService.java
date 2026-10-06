@@ -30,7 +30,7 @@ public class UserService {
             RegisterUserRequest request,
             Authentication authentication) {
 
-        boolean sistemaInicializado = userRepository.existsAnyUser();
+        boolean sistemaInicializado = userRepository.countAnyUser() > 0;
 
         UUID authenticatedUserId = null;
 
