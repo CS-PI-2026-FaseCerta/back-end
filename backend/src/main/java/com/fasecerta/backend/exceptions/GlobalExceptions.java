@@ -16,7 +16,6 @@ import com.fasecerta.backend.modules.auth.exception.InvalidCredentialsException;
 import com.fasecerta.backend.modules.auth.exception.TooManyLoginAttemptsException;
 import com.fasecerta.backend.modules.customer.CustomerValidationException;
 import com.fasecerta.backend.modules.customer.CustomerNotFoundException;
-import com.fasecerta.backend.modules.customer.CustomerValidationException;
 import com.fasecerta.backend.modules.services.ServiceValidationException;
 import com.fasecerta.backend.modules.user.UserConflictException;
 
@@ -109,12 +108,12 @@ public class GlobalExceptions {
                                 .body(Map.of("message", message));
         }
 
-    @ExceptionHandler(UserConflictException.class)
-    public ResponseEntity<Map<String, String>> handleUserConflict(
-            UserConflictException exception) {
+        @ExceptionHandler(UserConflictException.class)
+        public ResponseEntity<Map<String, String>> handleUserConflict(
+                        UserConflictException exception) {
 
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(Map.of("message", exception.getMessage()));
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CONFLICT)
+                                .body(Map.of("message", exception.getMessage()));
+        }
 }

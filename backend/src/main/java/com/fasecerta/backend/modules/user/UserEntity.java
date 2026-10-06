@@ -9,7 +9,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -20,7 +21,8 @@ import java.util.UUID;
 @Table(name = "usuarios")
 @SQLDelete(sql = "UPDATE usuarios SET deleted_at = CURRENT_TIMESTAMP, email_ativo = NULL WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
-@Data
+@Getter
+@Setter
 public class UserEntity {
 
     @Id
