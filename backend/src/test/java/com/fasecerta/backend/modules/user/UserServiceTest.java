@@ -26,9 +26,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.fasecerta.backend.exceptions.UnauthenticatedException;
 import com.fasecerta.backend.modules.user.UserDtos.RegisterUserRequest;
 import com.fasecerta.backend.modules.user.UserDtos.UserResponse;
-import com.fasecerta.backend.modules.user.UserProfile;
+import com.fasecerta.backend.shared.enums.UserProfile;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -51,9 +52,6 @@ class UserServiceTest {
                 admin = criarUsuario(UserProfile.ADMIN);
                 gestor = criarUsuario(UserProfile.GESTOR);
                 tecnico = criarUsuario(UserProfile.TECNICO);
-
-                when(passwordEncoder.encode(anyString()))
-                                .thenReturn("hash-senha");
         }
 
         @Test
@@ -61,6 +59,8 @@ class UserServiceTest {
                 when(userRepository.existsAnyUser()).thenReturn(false);
                 when(userRepository.existsByEmailAndDeletedAtIsNull(anyString()))
                                 .thenReturn(false);
+                when(passwordEncoder.encode(anyString()))
+                                .thenReturn("hash-senha");
 
                 UserEntity saved = criarUsuario(UserProfile.ADMIN);
 
@@ -183,6 +183,7 @@ class UserServiceTest {
         @Test
         void adminPodeCadastrarGestor() {
                 prepararUsuarioAutenticado(admin);
+                prepararCadastro();
 
                 RegisterUserRequest request = request(
                                 "Gestor",
@@ -206,6 +207,7 @@ class UserServiceTest {
         @Test
         void adminPodeCadastrarTecnico() {
                 prepararUsuarioAutenticado(admin);
+                prepararCadastro();
 
                 RegisterUserRequest request = request(
                                 "Tecnico",
@@ -251,6 +253,7 @@ class UserServiceTest {
         @Test
         void gestorPodeCadastrarTecnico() {
                 prepararUsuarioAutenticado(gestor);
+                prepararCadastro();
 
                 RegisterUserRequest request = request(
                                 "Tecnico",
@@ -345,10 +348,7 @@ class UserServiceTest {
         @Test
         void usernameDeveSerNormalizadoAntesDoCadastro() {
                 prepararUsuarioAutenticado(admin);
-
-                when(userRepository.existsByEmailAndDeletedAtIsNull(
-                                "usuario@email.com"))
-                                .thenReturn(false);
+                prepararCadastro();
 
                 UserEntity saved = criarUsuario(UserProfile.GESTOR);
 
@@ -377,10 +377,7 @@ class UserServiceTest {
         @Test
         void emailDeveSerNormalizadoAntesDaVerificacaoEDoCadastro() {
                 prepararUsuarioAutenticado(admin);
-
-                when(userRepository.existsByEmailAndDeletedAtIsNull(
-                                "usuario@email.com"))
-                                .thenReturn(false);
+                prepararCadastro();
 
                 UserEntity saved = criarUsuario(UserProfile.GESTOR);
 
@@ -415,9 +412,7 @@ class UserServiceTest {
         @Test
         void senhaDeveSerArmazenadaComoHash() {
                 prepararUsuarioAutenticado(admin);
-
-                when(userRepository.existsByEmailAndDeletedAtIsNull(anyString()))
-                                .thenReturn(false);
+                prepararCadastro();
 
                 UserEntity saved = criarUsuario(UserProfile.GESTOR);
 
@@ -447,9 +442,7 @@ class UserServiceTest {
         @Test
         void respostaNaoDeveConterSenhaOuHash() {
                 prepararUsuarioAutenticado(admin);
-
-                when(userRepository.existsByEmailAndDeletedAtIsNull(anyString()))
-                                .thenReturn(false);
+                prepararCadastro();
 
                 UserEntity saved = criarUsuario(UserProfile.GESTOR);
 
@@ -484,9 +477,14 @@ class UserServiceTest {
 
                 when(userRepository.findByIdAndDeletedAtIsNull(usuario.getId()))
                                 .thenReturn(java.util.Optional.of(usuario));
+        }
 
+        private void prepararCadastro() {
                 when(userRepository.existsByEmailAndDeletedAtIsNull(anyString()))
                                 .thenReturn(false);
+
+                when(passwordEncoder.encode(anyString()))
+                                .thenReturn("hash-senha");
         }
 
         private void assertCadastroNegado(
