@@ -68,10 +68,10 @@ public class ExpensesEntity {
     @Column(name = "updated_by", columnDefinition = "BINARY(16)")
     private UUID updatedBy;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", insertable = false, updatable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at")

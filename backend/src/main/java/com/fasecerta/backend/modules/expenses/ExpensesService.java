@@ -29,10 +29,14 @@ public class ExpensesService {
     }
 
     @Transactional
-    public ExpensesEntity create(ExpensesDtos.CreateExpenseRequest request, Authentication authentication) {
+    public ExpensesEntity create(
+            ExpensesDtos.CreateExpenseRequest request,
+            Authentication authentication) {
         UUID createdBy = authenticatedUserId(authentication);
+        LocalDateTime now = LocalDateTime.now();
 
         ExpensesEntity expense = new ExpensesEntity();
+
         expense.setData(request.data());
         expense.setDescricao(request.descricao());
         expense.setPagoA(request.pago_a());
@@ -41,7 +45,10 @@ public class ExpensesService {
         expense.setTipoPagamento(request.tipo_pagamento());
         expense.setModoPagamento(request.modo_pagamento());
         expense.setPago(Boolean.TRUE.equals(request.pago()));
+
         expense.setCreatedBy(createdBy);
+        expense.setCreatedAt(now);
+        expense.setUpdatedAt(now);
 
         return expensesRepository.save(expense);
     }
@@ -55,44 +62,51 @@ public class ExpensesService {
             ExpensePaymentType tipoPagamento,
             PaymentMethod modoPagamento,
             LocalDate dataInicial,
-            LocalDate dataFinal
-    ) {
+            LocalDate dataFinal) {
         validatePagination(page, limit);
 
         Specification<ExpensesEntity> filters = (root, query, cb) -> cb.isNull(root.get("deletedAt"));
 
         if (categoria != null) {
-            filters = filters.and((root, query, cb) -> cb.equal(root.get("categoria"), categoria));
+            filters = filters.and(
+                    (root, query, cb) -> cb.equal(root.get("categoria"), categoria));
         }
 
         if (pago != null) {
-            filters = filters.and((root, query, cb) -> cb.equal(root.get("pago"), pago));
+            filters = filters.and(
+                    (root, query, cb) -> cb.equal(root.get("pago"), pago));
         }
 
         if (tipoPagamento != null) {
-            filters = filters.and((root, query, cb) -> cb.equal(root.get("tipoPagamento"), tipoPagamento));
+            filters = filters.and(
+                    (root, query, cb) -> cb.equal(root.get("tipoPagamento"), tipoPagamento));
         }
 
         if (modoPagamento != null) {
-            filters = filters.and((root, query, cb) -> cb.equal(root.get("modoPagamento"), modoPagamento));
+            filters = filters.and(
+                    (root, query, cb) -> cb.equal(root.get("modoPagamento"), modoPagamento));
         }
 
         if (dataInicial != null) {
-            filters = filters.and((root, query, cb) ->
-                    cb.greaterThanOrEqualTo(root.<LocalDate>get("data"), dataInicial));
+            filters = filters.and(
+                    (root, query, cb) -> cb.greaterThanOrEqualTo(
+                            root.<LocalDate>get("data"),
+                            dataInicial));
         }
 
         if (dataFinal != null) {
-            filters = filters.and((root, query, cb) ->
-                    cb.lessThanOrEqualTo(root.<LocalDate>get("data"), dataFinal));
+            filters = filters.and(
+                    (root, query, cb) -> cb.lessThanOrEqualTo(
+                            root.<LocalDate>get("data"),
+                            dataFinal));
         }
 
         Sort sort = Sort.by(
                 Sort.Order.desc("data"),
-                Sort.Order.desc("id")
-        );
+                Sort.Order.desc("id"));
 
         PageRequest pageable = PageRequest.of(page - 1, limit, sort);
+
         Page<ExpensesEntity> result = expensesRepository.findAll(filters, pageable);
 
         return new ExpensesDtos.ExpensePageResponse(
@@ -100,76 +114,99 @@ public class ExpensesService {
                 result.getTotalElements(),
                 page,
                 limit,
-                result.getTotalPages()
-        );
+                result.getTotalPages());
     }
 
     @Transactional(readOnly = true)
     public ExpensesEntity findById(UUID id) {
-        return expensesRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
-    }           
+        return expensesRepository
+                .findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Despesa não encontrada"));
+    }
 
     @Transactional
     public ExpensesEntity update(
             UUID id,
             ExpensesDtos.UpdateExpenseRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         UUID updatedBy = authenticatedUserId(authentication);
-        ExpensesEntity expense = expensesRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
+
+        ExpensesEntity expense = expensesRepository
+                .findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Despesa não encontrada"));
 
         if (request.data() != null) {
             expense.setData(request.data());
         }
+
         if (request.descricao() != null) {
             expense.setDescricao(request.descricao());
         }
+
         if (request.pago_a() != null) {
             expense.setPagoA(request.pago_a());
         }
+
         if (request.categoria() != null) {
             expense.setCategoria(request.categoria());
         }
+
         if (request.valor() != null) {
             expense.setValor(request.valor());
         }
+
         if (request.tipo_pagamento() != null) {
             expense.setTipoPagamento(request.tipo_pagamento());
         }
+
         if (request.modo_pagamento() != null) {
             expense.setModoPagamento(request.modo_pagamento());
         }
+
         if (request.pago() != null) {
             expense.setPago(request.pago());
         }
 
         expense.setUpdatedBy(updatedBy);
+        expense.setUpdatedAt(LocalDateTime.now());
+
         return expensesRepository.save(expense);
     }
-    
 
     @Transactional
-    public void remove(UUID id, Authentication authentication) {
+    public void remove(
+            UUID id,
+            Authentication authentication) {
         UUID updatedBy = authenticatedUserId(authentication);
-        ExpensesEntity expense = expensesRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Despesa não encontrada"));
+
+        ExpensesEntity expense = expensesRepository
+                .findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Despesa não encontrada"));
 
         expense.setUpdatedBy(updatedBy);
+        expense.setUpdatedAt(LocalDateTime.now());
         expense.setDeletedAt(LocalDateTime.now());
+
         expensesRepository.save(expense);
     }
 
     private void validatePagination(int page, int limit) {
         if (page < 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "page deve ser maior ou igual a 1");
         }
+
         if (limit < 1 || limit > MAX_PAGE_SIZE) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "limit deve estar entre 1 e " + MAX_PAGE_SIZE
-            );
+                    "limit deve estar entre 1 e " + MAX_PAGE_SIZE);
         }
     }
 
@@ -177,7 +214,10 @@ public class ExpensesService {
         if (authentication == null
                 || !authentication.isAuthenticated()
                 || authentication instanceof AnonymousAuthenticationToken) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuário não autenticado");
+
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Usuário não autenticado");
         }
 
         try {
@@ -185,8 +225,7 @@ public class ExpensesService {
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(
                     HttpStatus.UNAUTHORIZED,
-                    "O usuário autenticado não possui um UUID válido"
-            );
+                    "O usuário autenticado não possui um UUID válido");
         }
     }
 }
