@@ -55,89 +55,7 @@ class UserServiceTest {
         }
 
         @Test
-        void primeiroUsuarioPodeSerAdminSemAuthentication() {
-                when(userRepository.countAnyUser()).thenReturn(0L);
-                when(userRepository.existsByEmailAndDeletedAtIsNull(anyString()))
-                                .thenReturn(false);
-                when(passwordEncoder.encode(anyString()))
-                                .thenReturn("hash-senha");
-
-                UserEntity saved = criarUsuario(UserProfile.ADMIN);
-
-                when(userRepository.saveAndFlush(any(UserEntity.class)))
-                                .thenReturn(saved);
-
-                RegisterUserRequest request = request(
-                                "Admin",
-                                "admin@email.com",
-                                "123456",
-                                UserProfile.ADMIN);
-
-                UserResponse response = userService.registerUser(request, null);
-
-                assertNotNull(response);
-                assertEquals(UserProfile.ADMIN, response.perfil());
-
-                ArgumentCaptor<UserEntity> captor = ArgumentCaptor.forClass(UserEntity.class);
-
-                verify(userRepository).saveAndFlush(captor.capture());
-
-                UserEntity entity = captor.getValue();
-
-                assertEquals("Admin", entity.getUsername());
-                assertEquals("admin@email.com", entity.getEmail());
-                assertEquals("admin@email.com", entity.getEmailAtivo());
-                assertEquals(UserProfile.ADMIN, entity.getPerfil());
-                assertEquals("hash-senha", entity.getPasswordHash());
-                assertNotNull(entity.getCreatedAt());
-                assertNotNull(entity.getUpdatedAt());
-                assertEquals(null, entity.getCreatedBy());
-                assertEquals(null, entity.getUpdatedBy());
-        }
-
-        @Test
-        void primeiroUsuarioGestorDeveSerRecusado() {
-                when(userRepository.countAnyUser()).thenReturn(0L);
-
-                RegisterUserRequest request = request(
-                                "Gestor",
-                                "gestor@email.com",
-                                "123456",
-                                UserProfile.GESTOR);
-
-                ResponseStatusException exception = assertThrows(
-                                ResponseStatusException.class,
-                                () -> userService.registerUser(request, null));
-
-                assertEquals(403, exception.getStatusCode().value());
-                assertEquals(
-                                "O primeiro usuário deve possuir o perfil ADMIN",
-                                exception.getReason());
-        }
-
-        @Test
-        void primeiroUsuarioTecnicoDeveSerRecusado() {
-                when(userRepository.countAnyUser()).thenReturn(0L);
-
-                RegisterUserRequest request = request(
-                                "Tecnico",
-                                "tecnico@email.com",
-                                "123456",
-                                UserProfile.TECNICO);
-
-                ResponseStatusException exception = assertThrows(
-                                ResponseStatusException.class,
-                                () -> userService.registerUser(request, null));
-
-                assertEquals(403, exception.getStatusCode().value());
-                assertEquals(
-                                "O primeiro usuário deve possuir o perfil ADMIN",
-                                exception.getReason());
-        }
-
-        @Test
-        void segundoCadastroSemAuthenticationDeveSerRecusado() {
-                when(userRepository.countAnyUser()).thenReturn(1L);
+        void cadastroSemAuthenticationDeveSerRecusado() {
 
                 RegisterUserRequest request = request(
                                 "Gestor",
@@ -156,7 +74,6 @@ class UserServiceTest {
 
         @Test
         void segundoCadastroComAuthenticationNaoEncontradaDeveSerRecusado() {
-                when(userRepository.countAnyUser()).thenReturn(1L);
 
                 UUID usuarioId = UUID.randomUUID();
 
@@ -472,9 +389,6 @@ class UserServiceTest {
         }
 
         private void prepararUsuarioAutenticado(UserEntity usuario) {
-                when(userRepository.countAnyUser())
-                                .thenReturn(1L);
-
                 when(userRepository.findByIdAndDeletedAtIsNull(usuario.getId()))
                                 .thenReturn(java.util.Optional.of(usuario));
         }
