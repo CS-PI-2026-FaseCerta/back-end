@@ -1,0 +1,2608 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-09T23:24:08.516Z",
+  "__export_source": "insomnia.desktop.app:v10.3.0",
+  "resources": [
+    {
+      "_id": "__WORKSPACE_ID__",
+      "parentId": null,
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Fase Certa - Backend API",
+      "description": "Coleção de teste manual derivada dos controllers Spring Boot.",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "__BASE_ENVIRONMENT_ID__",
+      "parentId": "__WORKSPACE_ID__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8080",
+        "admin_email": "admin@example.com",
+        "admin_password": "",
+        "gestor_email": "gestor.colecao@example.com",
+        "gestor_password": "",
+        "tecnico_email": "tecnico.colecao@example.com",
+        "tecnico_password": "",
+        "admin_token": "",
+        "gestor_token": "",
+        "tecnico_token": "",
+        "user_id": "",
+        "customer_id": "",
+        "expense_id": "",
+        "service_id": "",
+        "tampered_token": "",
+        "expired_token": "",
+        "new_user_password": "",
+        "wrong_password": "SENHA_INCORRETA_DE_TESTE",
+        "invalid_email": "ausente@example.com",
+        "test_cpf": "123.456.789-09",
+        "test_cnpj": "12.345.678/0001-95",
+        "missing_id": "00000000-0000-0000-0000-000000000000",
+        "admin_email_upper": "ADMIN@EXAMPLE.COM"
+      },
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1791588248516,
+      "_type": "environment"
+    },
+    {
+      "_id": "__folder_1__",
+      "parentId": "__WORKSPACE_ID__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Auth",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_2__",
+      "parentId": "__WORKSPACE_ID__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Usuários",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -2,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_3__",
+      "parentId": "__folder_2__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Criação de usuários",
+      "description": "ADMIN e GESTOR passam pelo Spring Security; a matriz permanece no UserService.",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -3,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_4__",
+      "parentId": "__folder_3__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Matriz de perfis",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -4,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_5__",
+      "parentId": "__WORKSPACE_ID__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Clientes",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -5,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_6__",
+      "parentId": "__WORKSPACE_ID__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Despesas",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -6,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_7__",
+      "parentId": "__WORKSPACE_ID__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Serviços",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -7,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_8__",
+      "parentId": "__WORKSPACE_ID__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Infraestrutura",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -8,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_9__",
+      "parentId": "__WORKSPACE_ID__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Security Tests",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -9,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_10__",
+      "parentId": "__folder_9__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "JWT",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -10,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__folder_11__",
+      "parentId": "__folder_9__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "name": "Rate Limit",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -11,
+      "_type": "request_group"
+    },
+    {
+      "_id": "__request_1__",
+      "parentId": "__folder_1__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[200] Login - ADMIN",
+      "description": "Use as credenciais locais de ADMIN. O script salva admin_token no ambiente.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ admin_email }}\",\n  \"password\": \"{{ admin_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém somente token', () => {\n    insomnia.expect(body.token).to.be.a('string');\n    insomnia.expect(body).to.not.have.any.keys('password', 'passwordHash', 'senha', 'senha_hash');\n  });\n  if (body.token) insomnia.environment.set('admin_token', body.token);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_2__",
+      "parentId": "__folder_1__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[200] Login - GESTOR",
+      "description": "Use as credenciais locais de GESTOR. O script salva gestor_token no ambiente.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ gestor_email }}\",\n  \"password\": \"{{ gestor_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -2,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém somente token', () => {\n    insomnia.expect(body.token).to.be.a('string');\n    insomnia.expect(body).to.not.have.any.keys('password', 'passwordHash', 'senha', 'senha_hash');\n  });\n  if (body.token) insomnia.environment.set('gestor_token', body.token);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_3__",
+      "parentId": "__folder_1__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[200] Login - TECNICO",
+      "description": "Use as credenciais locais de TECNICO. O script salva tecnico_token no ambiente.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ tecnico_email }}\",\n  \"password\": \"{{ tecnico_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -3,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém somente token', () => {\n    insomnia.expect(body.token).to.be.a('string');\n    insomnia.expect(body).to.not.have.any.keys('password', 'passwordHash', 'senha', 'senha_hash');\n  });\n  if (body.token) insomnia.environment.set('tecnico_token', body.token);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_4__",
+      "parentId": "__folder_1__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[401] Login - senha incorreta",
+      "description": "Execute antes do cenário de e-mail inexistente para comparar as respostas. Pode contribuir para o limite por IP.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ admin_email }}\",\n  \"password\": \"{{ wrong_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -4,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });\nif (insomnia.response.code === 401) insomnia.environment.set('wrong_password_response', insomnia.response.text());",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_5__",
+      "parentId": "__folder_1__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[401] Login - e-mail inexistente",
+      "description": "Se executado após senha incorreta, compara as respostas externas. Pode contribuir para o limite por IP.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ invalid_email }}\",\n  \"password\": \"{{ wrong_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -5,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });\nconst previous = insomnia.environment.get('wrong_password_response');\nif (previous && insomnia.response.code === 401) insomnia.test('Mesma resposta externa para credenciais inválidas', () => { insomnia.expect(insomnia.response.text()).to.eql(previous); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_6__",
+      "parentId": "__folder_1__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[200] Login - e-mail maiúsculo e espaços",
+      "description": "LoginRequest.trim() e AuthService.toLowerCase() normalizam o e-mail.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"  {{ admin_email_upper }}  \",\n  \"password\": \"{{ admin_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -6,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém somente token', () => {\n    insomnia.expect(body.token).to.be.a('string');\n    insomnia.expect(body).to.not.have.any.keys('password', 'passwordHash', 'senha', 'senha_hash');\n  });\n  if (body.token) insomnia.environment.set('admin_token', body.token);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_7__",
+      "parentId": "__folder_1__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[400] Login - email obrigatório ausente",
+      "description": "@NotBlank no LoginRequest.email.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"password\": \"{{ wrong_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -7,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_8__",
+      "parentId": "__folder_4__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[201] ADMIN cria GESTOR",
+      "description": "Permitido pela matriz. Altere o e-mail ao repetir; um e-mail já cadastrado retorna 409.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Gestor de Teste\",\n  \"email\": \"{{ gestor_email }}\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"GESTOR\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -8,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 201', () => { insomnia.expect(insomnia.response.code).to.eql(201); });\nif (insomnia.response.code === 201) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém id', () => { insomnia.expect(body.id).to.be.a('string'); });\n  if (body.id) insomnia.environment.set('user_id', body.id);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_9__",
+      "parentId": "__folder_4__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[201] ADMIN cria TECNICO",
+      "description": "Permitido pela matriz. Altere o e-mail ao repetir.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Técnico de Teste\",\n  \"email\": \"{{ tecnico_email }}\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"TECNICO\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -9,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 201', () => { insomnia.expect(insomnia.response.code).to.eql(201); });\nif (insomnia.response.code === 201) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém id', () => { insomnia.expect(body.id).to.be.a('string'); });\n  if (body.id) insomnia.environment.set('user_id', body.id);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_10__",
+      "parentId": "__folder_4__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[201] GESTOR cria TECNICO",
+      "description": "Permitido pela matriz do UserService. Altere o e-mail ao repetir.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Técnico do Gestor\",\n  \"email\": \"tecnico.gestor@example.com\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"TECNICO\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ gestor_token }}"
+      },
+      "metaSortKey": -10,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 201', () => { insomnia.expect(insomnia.response.code).to.eql(201); });\nif (insomnia.response.code === 201) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém id', () => { insomnia.expect(body.id).to.be.a('string'); });\n  if (body.id) insomnia.environment.set('user_id', body.id);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_11__",
+      "parentId": "__folder_4__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[403] ADMIN tenta criar ADMIN",
+      "description": "O acesso ao endpoint passa; UserService recusa o perfil solicitado.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Outro Admin\",\n  \"email\": \"outro.admin@example.com\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"ADMIN\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -11,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 403', () => { insomnia.expect(insomnia.response.code).to.eql(403); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_12__",
+      "parentId": "__folder_4__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[403] GESTOR tenta criar GESTOR",
+      "description": "O acesso ao endpoint passa; UserService recusa o perfil solicitado.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Outro Gestor\",\n  \"email\": \"outro.gestor@example.com\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"GESTOR\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ gestor_token }}"
+      },
+      "metaSortKey": -12,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 403', () => { insomnia.expect(insomnia.response.code).to.eql(403); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_13__",
+      "parentId": "__folder_4__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[403] GESTOR tenta criar ADMIN",
+      "description": "O acesso ao endpoint passa; UserService recusa o perfil solicitado.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Admin pelo Gestor\",\n  \"email\": \"admin.gestor@example.com\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"ADMIN\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ gestor_token }}"
+      },
+      "metaSortKey": -13,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 403', () => { insomnia.expect(insomnia.response.code).to.eql(403); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_14__",
+      "parentId": "__folder_3__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[403] TECNICO tenta criar usuário",
+      "description": "Bloqueado por hasAnyRole(ADMIN, GESTOR), antes do UserService.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Gestor de Teste\",\n  \"email\": \"gestor.colecao@example.com\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"GESTOR\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -14,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 403', () => { insomnia.expect(insomnia.response.code).to.eql(403); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_15__",
+      "parentId": "__folder_3__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[401] Criar usuário - sem JWT",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Gestor de Teste\",\n  \"email\": \"gestor.colecao@example.com\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"GESTOR\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -15,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_16__",
+      "parentId": "__folder_3__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[401] Criar usuário - token inválido",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Gestor de Teste\",\n  \"email\": \"gestor.colecao@example.com\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"GESTOR\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "invalid-token"
+      },
+      "metaSortKey": -16,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_17__",
+      "parentId": "__folder_3__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[400] Criar usuário - email obrigatório ausente",
+      "description": "@NotBlank em RegisterUserRequest.email.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Novo\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"GESTOR\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -17,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_18__",
+      "parentId": "__folder_3__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[409] Criar usuário - email duplicado",
+      "description": "Execute após ADMIN cria GESTOR, mantendo o mesmo e-mail. UserService verifica duplicidade ativa.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Gestor de Teste\",\n  \"email\": \"{{ gestor_email }}\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"GESTOR\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -18,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 409', () => { insomnia.expect(insomnia.response.code).to.eql(409); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_19__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[201] Criar cliente PF",
+      "description": "CPF sintaticamente válido e fictício no ambiente. O id retornado é salvo em customer_id. Altere CPF/e-mail ao repetir.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipoPessoa\": \"PF\",\n  \"nomeCompleto\": \"Cliente Pessoa Física\",\n  \"cpf\": \"{{ test_cpf }}\",\n  \"email\": \"cliente.pf@example.com\",\n  \"cep\": \"00000-000\",\n  \"cidade\": \"Cidade Exemplo\",\n  \"estado\": \"SP\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -19,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 201', () => { insomnia.expect(insomnia.response.code).to.eql(201); });\nif (insomnia.response.code === 201) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém id', () => { insomnia.expect(body.id).to.be.a('string'); });\n  if (body.id) insomnia.environment.set('customer_id', body.id);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_20__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[201] Criar cliente PJ",
+      "description": "CNPJ sintaticamente válido e fictício no ambiente. Altera customer_id para o novo cliente.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipoPessoa\": \"PJ\",\n  \"razaoSocial\": \"Empresa Exemplo de Teste\",\n  \"cnpj\": \"{{ test_cnpj }}\",\n  \"email\": \"cliente.pj@example.com\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -20,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 201', () => { insomnia.expect(insomnia.response.code).to.eql(201); });\nif (insomnia.response.code === 201) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém id', () => { insomnia.expect(body.id).to.be.a('string'); });\n  if (body.id) insomnia.environment.set('customer_id', body.id);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_21__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[200] Listar clientes",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -21,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) insomnia.test('Página contém items', () => { insomnia.expect(insomnia.response.json().items).to.be.an('array'); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_22__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[200] Filtrar clientes",
+      "description": "Parâmetros reais do CustomerController; ajuste filtros para encontrar seus dados.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": false
+        },
+        {
+          "name": "nome",
+          "value": "Cliente",
+          "disabled": false
+        },
+        {
+          "name": "documento",
+          "value": "{{ test_cpf }}",
+          "disabled": false
+        },
+        {
+          "name": "tipoPessoa",
+          "value": "PF",
+          "disabled": false
+        },
+        {
+          "name": "email",
+          "value": "cliente.pf@example.com",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -22,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_23__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes/{{ customer_id }}",
+      "name": "[200] Consultar cliente",
+      "description": "Requer customer_id de uma criação anterior.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -23,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_24__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes/{{ customer_id }}",
+      "name": "[200] Atualizar cliente",
+      "description": "CustomerUpdateRequest aceita campos parciais.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"telefone\": \"11999990000\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -24,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_25__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes/{{ customer_id }}",
+      "name": "[200] Remover cliente (soft delete)",
+      "description": "Marca deletedAt; execute a consulta após exclusão em seguida.",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -25,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) insomnia.test('Resposta contém message', () => { insomnia.expect(insomnia.response.json()).to.have.property('message'); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_26__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes/{{ customer_id }}",
+      "name": "[404] Consultar cliente após soft delete",
+      "description": "Execute após Remover cliente para confirmar que não está disponível.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -26,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 404', () => { insomnia.expect(insomnia.response.code).to.eql(404); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_27__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[400] Criar cliente sem tipoPessoa",
+      "description": "@NotNull em CustomerCreateRequest.tipoPessoa.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nomeCompleto\": \"Cliente Inválido\",\n  \"cpf\": \"{{ test_cpf }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -27,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_28__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[400] Listar clientes com page=0",
+      "description": "CustomerService exige page >= 1.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "0",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "10",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -28,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_29__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[409] Criar cliente com documento duplicado",
+      "description": "Execute após Criar cliente PF e antes de seu soft delete.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipoPessoa\": \"PF\",\n  \"nomeCompleto\": \"Cliente Pessoa Física\",\n  \"cpf\": \"{{ test_cpf }}\",\n  \"email\": \"cliente.pf@example.com\",\n  \"cep\": \"00000-000\",\n  \"cidade\": \"Cidade Exemplo\",\n  \"estado\": \"SP\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -29,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 409', () => { insomnia.expect(insomnia.response.code).to.eql(409); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_30__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes/{{ missing_id }}",
+      "name": "[404] Consultar cliente inexistente",
+      "description": "missing_id deve ser um UUID sem registro no banco.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -30,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 404', () => { insomnia.expect(insomnia.response.code).to.eql(404); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_31__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas",
+      "name": "[201] Criar despesa",
+      "description": "created_by é preenchido pelo usuário autenticado. Altera expense_id.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"data\": \"2026-01-15\",\n  \"descricao\": \"Internet de teste\",\n  \"pago_a\": \"Fornecedor Exemplo\",\n  \"categoria\": \"INTERNET\",\n  \"valor\": 99.9,\n  \"tipo_pagamento\": \"A_VISTA\",\n  \"modo_pagamento\": \"PIX\",\n  \"pago\": false\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -31,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 201', () => { insomnia.expect(insomnia.response.code).to.eql(201); });\nif (insomnia.response.code === 201) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém id', () => { insomnia.expect(body.id).to.be.a('string'); });\n  if (body.id) insomnia.environment.set('expense_id', body.id);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_32__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas",
+      "name": "[200] Listar despesas",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "20",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -32,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) insomnia.test('Página contém items', () => { insomnia.expect(insomnia.response.json().items).to.be.an('array'); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_33__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas",
+      "name": "[200] Filtrar despesas",
+      "description": "Filtros e datas ISO definidos no ExpensesController.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "20",
+          "disabled": false
+        },
+        {
+          "name": "categoria",
+          "value": "INTERNET",
+          "disabled": false
+        },
+        {
+          "name": "pago",
+          "value": "false",
+          "disabled": false
+        },
+        {
+          "name": "tipo_pagamento",
+          "value": "A_VISTA",
+          "disabled": false
+        },
+        {
+          "name": "modo_pagamento",
+          "value": "PIX",
+          "disabled": false
+        },
+        {
+          "name": "data_inicial",
+          "value": "2026-01-01",
+          "disabled": false
+        },
+        {
+          "name": "data_final",
+          "value": "2026-01-31",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -33,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_34__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas/{{ expense_id }}",
+      "name": "[200] Consultar despesa",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -34,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_35__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas/{{ expense_id }}",
+      "name": "[200] Atualizar despesa",
+      "description": "UpdateExpenseRequest aceita campos parciais; updated_by é automático.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"pago\": true\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -35,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_36__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas/{{ expense_id }}",
+      "name": "[200] Remover despesa (soft delete)",
+      "description": "Restrito a ADMIN; marca deletedAt.",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -36,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_37__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas/{{ expense_id }}",
+      "name": "[404] Consultar despesa após soft delete",
+      "description": "Execute após Remover despesa.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -37,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 404', () => { insomnia.expect(insomnia.response.code).to.eql(404); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_38__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas",
+      "name": "[400] Criar despesa com valor zero",
+      "description": "@DecimalMin com inclusive=false.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"data\": \"2026-01-15\",\n  \"descricao\": \"Internet de teste\",\n  \"pago_a\": \"Fornecedor Exemplo\",\n  \"categoria\": \"INTERNET\",\n  \"valor\": 0,\n  \"tipo_pagamento\": \"A_VISTA\",\n  \"modo_pagamento\": \"PIX\",\n  \"pago\": false\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -38,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_39__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas",
+      "name": "[400] Listar despesas com limit=101",
+      "description": "ExpensesService limita 1..100.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "101",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -39,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_40__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas/{{ expense_id }}",
+      "name": "[403] GESTOR tenta remover despesa",
+      "description": "@PreAuthorize exige ROLE_ADMIN.",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ gestor_token }}"
+      },
+      "metaSortKey": -40,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 403', () => { insomnia.expect(insomnia.response.code).to.eql(403); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_41__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[201] Criar serviço",
+      "description": "ADMIN ou GESTOR. Altera service_id.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Serviço de teste\",\n  \"descricao\": \"Exemplo para testes manuais\",\n  \"categoria\": \"Manutenção\",\n  \"tipo_cobranca\": \"REAL\",\n  \"valor_base\": 150\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -41,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 201', () => { insomnia.expect(insomnia.response.code).to.eql(201); });\nif (insomnia.response.code === 201) {\n  const body = insomnia.response.json();\n  insomnia.test('Resposta contém id', () => { insomnia.expect(body.id).to.be.a('string'); });\n  if (body.id) insomnia.environment.set('service_id', body.id);\n}",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_42__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[200] Listar serviços",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "20",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -42,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) insomnia.test('Página contém items', () => { insomnia.expect(insomnia.response.json().items).to.be.an('array'); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_43__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[200] Filtrar e ordenar serviços",
+      "description": "order_by aceita nome, categoria, valor_base/valorbase; order_dir desc ou asc.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "20",
+          "disabled": false
+        },
+        {
+          "name": "nome",
+          "value": "Serviço",
+          "disabled": false
+        },
+        {
+          "name": "categoria",
+          "value": "Manutenção",
+          "disabled": false
+        },
+        {
+          "name": "tipo_cobranca",
+          "value": "REAL",
+          "disabled": false
+        },
+        {
+          "name": "order_by",
+          "value": "valor_base",
+          "disabled": false
+        },
+        {
+          "name": "order_dir",
+          "value": "desc",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -43,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_44__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos/{{ service_id }}",
+      "name": "[200] Consultar serviço",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -44,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_45__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos/{{ service_id }}",
+      "name": "[200] Atualizar serviço",
+      "description": "UpdateServiceRequest aceita campos parciais; requer ADMIN ou GESTOR.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"valor_base\": 175\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ gestor_token }}"
+      },
+      "metaSortKey": -45,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_46__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos/{{ service_id }}",
+      "name": "[200] Remover serviço (soft delete)",
+      "description": "Requer ADMIN ou GESTOR; marca deletedAt.",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -46,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_47__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos/{{ service_id }}",
+      "name": "[404] Consultar serviço após soft delete",
+      "description": "Execute após Remover serviço.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -47,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 404', () => { insomnia.expect(insomnia.response.code).to.eql(404); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_48__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[400] Criar serviço com valor negativo",
+      "description": "@DecimalMin em CreateServiceRequest.valor_base.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Serviço de teste\",\n  \"descricao\": \"Exemplo para testes manuais\",\n  \"categoria\": \"Manutenção\",\n  \"tipo_cobranca\": \"REAL\",\n  \"valor_base\": -1\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -48,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_49__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[400] Listar serviços com order_by inválido",
+      "description": "ServicesService rejeita campo de ordenação desconhecido.",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "page",
+          "value": "1",
+          "disabled": false
+        },
+        {
+          "name": "limit",
+          "value": "20",
+          "disabled": false
+        },
+        {
+          "name": "order_by",
+          "value": "invalido",
+          "disabled": false
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -49,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_50__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[403] TECNICO tenta criar serviço",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Serviço de teste\",\n  \"descricao\": \"Exemplo para testes manuais\",\n  \"categoria\": \"Manutenção\",\n  \"tipo_cobranca\": \"REAL\",\n  \"valor_base\": 150\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -50,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 403', () => { insomnia.expect(insomnia.response.code).to.eql(403); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_51__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos/{{ service_id }}",
+      "name": "[403] TECNICO tenta atualizar serviço",
+      "description": "",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"valor_base\": 175\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -51,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 403', () => { insomnia.expect(insomnia.response.code).to.eql(403); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_52__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos/{{ service_id }}",
+      "name": "[403] TECNICO tenta remover serviço",
+      "description": "",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -52,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 403', () => { insomnia.expect(insomnia.response.code).to.eql(403); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_53__",
+      "parentId": "__folder_8__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/health",
+      "name": "[200] Health (Actuator)",
+      "description": "Endpoint Actuator configurado no application.properties. Segue anyRequest().authenticated(). Requer aplicação saudável.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -53,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });\nif (insomnia.response.code === 200) insomnia.test('Health UP', () => { insomnia.expect(insomnia.response.json().status).to.eql('UP'); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_54__",
+      "parentId": "__folder_8__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/health",
+      "name": "[401] Health sem JWT",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -54,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_55__",
+      "parentId": "__folder_3__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/usuarios",
+      "name": "[400] Criar usuário - email inválido",
+      "description": "@Email em RegisterUserRequest.email.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"Novo\",\n  \"email\": \"invalido\",\n  \"password\": \"{{ new_user_password }}\",\n  \"perfil\": \"GESTOR\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -55,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_56__",
+      "parentId": "__folder_5__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[400] Criar cliente com CEP inválido",
+      "description": "@Pattern exige CEP no formato 00000-000.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipoPessoa\": \"PF\",\n  \"nomeCompleto\": \"Cliente Inválido\",\n  \"cpf\": \"{{ test_cpf }}\",\n  \"cep\": \"12345678\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -56,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_57__",
+      "parentId": "__folder_6__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas",
+      "name": "[400] Criar despesa sem descrição",
+      "description": "@NotBlank em CreateExpenseRequest.descricao.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"data\": \"2026-01-15\",\n  \"pago_a\": \"Fornecedor Exemplo\",\n  \"categoria\": \"INTERNET\",\n  \"valor\": 99.9,\n  \"tipo_pagamento\": \"A_VISTA\",\n  \"modo_pagamento\": \"PIX\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -57,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_58__",
+      "parentId": "__folder_7__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos/{{ service_id }}",
+      "name": "[400] Atualizar serviço sem campos",
+      "description": "ServicesService exige ao menos um campo no UpdateServiceRequest.",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -58,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 400', () => { insomnia.expect(insomnia.response.code).to.eql(400); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_59__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[401] Clientes sem token",
+      "description": "Rota privada fechada por padrão.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -59,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_60__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[401] Clientes com token inválido",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "invalid-token"
+      },
+      "metaSortKey": -60,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_61__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas",
+      "name": "[401] Despesas sem token",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -61,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_62__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/despesas",
+      "name": "[401] Despesas com token inválido",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "invalid-token"
+      },
+      "metaSortKey": -62,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_63__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[401] Serviços sem token",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -63,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_64__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[401] Serviços com token inválido",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "invalid-token"
+      },
+      "metaSortKey": -64,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_65__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[401] JWT adulterado",
+      "description": "Copie um JWT válido para tampered_token e altere um caractere da assinatura. Um valor vazio também dá 401, mas não testa adulteração.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tampered_token }}"
+      },
+      "metaSortKey": -65,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_66__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[401] JWT expirado",
+      "description": "Preencha expired_token com um token real já expirado, gerado no ambiente local. Não versione o token.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ expired_token }}"
+      },
+      "metaSortKey": -66,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401', () => { insomnia.expect(insomnia.response.code).to.eql(401); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_67__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[200] ADMIN em rota privada",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ admin_token }}"
+      },
+      "metaSortKey": -67,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_68__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/servicos",
+      "name": "[200] GESTOR em rota privada",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ gestor_token }}"
+      },
+      "metaSortKey": -68,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_69__",
+      "parentId": "__folder_10__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/clientes",
+      "name": "[200] TECNICO em rota privada",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ tecnico_token }}"
+      },
+      "metaSortKey": -69,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 200', () => { insomnia.expect(insomnia.response.code).to.eql(200); });",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_70__",
+      "parentId": "__folder_11__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[401→429] Login - credenciais inválidas (repetir)",
+      "description": "Repita do mesmo IP. As primeiras tentativas seguem o fluxo de 401; após AUTH_RATE_LIMIT_MAX_ATTEMPTS na janela configurada, retornam 429. Execute por último.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ invalid_email }}\",\n  \"password\": \"{{ wrong_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -70,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 401 ou 429', () => { insomnia.expect([401, 429]).to.include(insomnia.response.code); });\nif (insomnia.response.code === 429) insomnia.test('429 inclui Retry-After', () => {\n  const header = insomnia.response.headers.find(h => h.key.toLowerCase() === 'retry-after');\n  insomnia.expect(header).to.exist;\n});",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "__request_71__",
+      "parentId": "__folder_11__",
+      "created": 1791588248516,
+      "modified": 1791588248516,
+      "url": "{{ base_url }}/api/auth/login",
+      "name": "[429] Login após exceder limite",
+      "description": "Execute depois de repetir o request anterior além do limite. Por padrão: 5 tentativas/60 s por IP de conexão.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"{{ invalid_email }}\",\n  \"password\": \"{{ wrong_password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -71,
+      "isPrivate": false,
+      "pathParameters": [],
+      "afterResponseScript": "insomnia.test('HTTP 429', () => { insomnia.expect(insomnia.response.code).to.eql(429); });\nif (insomnia.response.code === 429) insomnia.test('Retry-After presente', () => {\n  const header = insomnia.response.headers.find(h => h.key.toLowerCase() === 'retry-after');\n  insomnia.expect(header).to.exist;\n});",
+      "settingStoreCookies": false,
+      "settingSendCookies": false,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    }
+  ]
+}

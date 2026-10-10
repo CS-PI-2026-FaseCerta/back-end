@@ -27,7 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             jwtService.parseValidToken(token).ifPresentOrElse(claims -> {
                 var authentication = UsernamePasswordAuthenticationToken.authenticated(
                         claims.subject().toString(), null,
-                        List.of(new SimpleGrantedAuthority(claims.role())));
+                        List.of(new SimpleGrantedAuthority("ROLE_" + claims.role())));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }, SecurityContextHolder::clearContext);
         }
