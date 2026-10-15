@@ -4,8 +4,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
 
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
@@ -16,6 +16,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
     Optional<UserEntity> findByIdAndDeletedAtIsNull(UUID id);
 
-    @Query(value = "SELECT COUNT(*) FROM usuarios", nativeQuery = true)
-    long countAnyUser();
+    // Conta também registros excluídos logicamente: bootstrap não recria um ADMIN já provisionado.
+    @Query(value = "SELECT COUNT(*) FROM usuarios WHERE perfil = 'ADMIN'", nativeQuery = true)
+    long countAnyAdmin();
 }

@@ -30,24 +30,16 @@ public class UserService {
             RegisterUserRequest request,
             Authentication authentication) {
 
-        boolean sistemaInicializado = userRepository.countAnyUser() > 0;
+        UUID authenticatedUserId = authenticatedUserId(authentication);
 
-        UUID authenticatedUserId = null;
+        UserEntity authenticatedUser = userRepository
+                .findByIdAndDeletedAtIsNull(authenticatedUserId)
+                .orElseThrow(() -> new UnauthenticatedException(
+                        "Usuário autenticado não encontrado"));
 
-        if (sistemaInicializado) {
-            authenticatedUserId = authenticatedUserId(authentication);
-
-            UserEntity authenticatedUser = userRepository
-                    .findByIdAndDeletedAtIsNull(authenticatedUserId)
-                    .orElseThrow(() -> new UnauthenticatedException(
-                            "Usuário autenticado não encontrado"));
-
-            validateRegistrationPermission(
-                    authenticatedUser.getPerfil(),
-                    request.perfil());
-        } else {
-            validateFirstUser(request.perfil());
-        }
+        validateRegistrationPermission(
+                authenticatedUser.getPerfil(),
+                request.perfil());
 
         String usernameNormalizado = request.username().trim();
         String emailNormalizado = request.email().trim().toLowerCase();
@@ -83,15 +75,6 @@ public class UserService {
         } catch (DataIntegrityViolationException exception) {
             throw new UserConflictException(
                     "E-mail já cadastrado no sistema");
-        }
-    }
-
-    private void validateFirstUser(UserProfile requestedProfile) {
-
-        if (requestedProfile != UserProfile.ADMIN) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "O primeiro usuário deve possuir o perfil ADMIN");
         }
     }
 

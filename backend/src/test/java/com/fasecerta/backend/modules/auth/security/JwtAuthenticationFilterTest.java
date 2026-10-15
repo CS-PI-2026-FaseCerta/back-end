@@ -34,18 +34,21 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void validBearerTokenAuthenticatesWithUuidAndRoleButNoCredentials() throws Exception {
-        UUID userId = UUID.randomUUID();
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer " + jwtService.generateToken(userId, "GESTOR"));
+    void validBearerTokensMapProfilesToSpringRoles() throws Exception {
+        for (String role : new String[] {"ADMIN", "GESTOR", "TECNICO"}) {
+            SecurityContextHolder.clearContext();
+            UUID userId = UUID.randomUUID();
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.addHeader("Authorization", "Bearer " + jwtService.generateToken(userId, role));
 
-        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+            filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        assertNotNull(authentication);
-        assertEquals(userId.toString(), authentication.getName());
-        assertEquals("GESTOR", authentication.getAuthorities().iterator().next().getAuthority());
-        assertNull(authentication.getCredentials());
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            assertNotNull(authentication);
+            assertEquals(userId.toString(), authentication.getName());
+            assertEquals("ROLE_" + role, authentication.getAuthorities().iterator().next().getAuthority());
+            assertNull(authentication.getCredentials());
+        }
     }
 
     @Test
@@ -62,13 +65,22 @@ class JwtAuthenticationFilterTest {
                 .generateToken(UUID.randomUUID(), "ADMIN");
         String[] tamperedParts = jwtService.generateToken(UUID.randomUUID(), "ADMIN").split("\\.");
         tamperedParts[2] = (tamperedParts[2].charAt(0) == 'A' ? "B" : "A") + tamperedParts[2].substring(1);
+        String unknownRoleToken = Jwts.builder()
+                .subject(UUID.randomUUID().toString())
+                .claim("role", "SUPER_ADMIN")
+                .issuedAt(new Date())
+                .expiration(Date.from(Instant.now().plusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)), Jwts.SIG.HS256)
+                .compact();
 
         for (String authorization : new String[] {
                 "Bearer broken.token.value",
                 "Bearer " + expiredToken,
                 "Bearer " + otherKeyToken,
                 "Bearer " + String.join(".", tamperedParts),
+                "Bearer " + unknownRoleToken,
                 "Basic abc",
+                "Token abc",
                 "Bearer",
                 "Bearer invalid-token"
         }) {
