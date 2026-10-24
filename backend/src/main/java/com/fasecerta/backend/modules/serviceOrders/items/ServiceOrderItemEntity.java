@@ -1,6 +1,7 @@
 
-package com.fasecerta.backend.modules.serviceOrders;
+package com.fasecerta.backend.modules.serviceOrders.items;
 
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersEntity;
 import com.fasecerta.backend.modules.services.ServicesEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
