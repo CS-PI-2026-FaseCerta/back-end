@@ -8,6 +8,8 @@ O enum compartilhado mantém `TRANSFERENCIA`, que é o nome já usado pelo backe
 
 O projeto usa `spring.jpa.hibernate.ddl-auto=update` e não possui Flyway ou Liquibase. O mapeamento JPA cria `os_meios_pagamento` com `id` e `os_id` em UUID binário, `meio_pagamento` como enum textual e restrição `UNIQUE (os_id, meio_pagamento)`. Não há foreign key para a OS neste estágio. Em ambientes onde o Hibernate não gerencia o schema, a equipe de banco deve criar uma migration equivalente antes do deploy.
 
+Como `PaymentMethod` também é usado em `despesas`, confirme no MySQL que a coluna `modo_pagamento` existente passa a aceitar `CHEQUE`. O Hibernate pode mapeá-la como `ENUM` nativo e `ddl-auto=update` não substitui uma migration de produção revisada. Os testes desta entrega usam H2; ainda não validam a evolução de um schema MySQL já populado.
+
 ## Integração futura com a OS
 
 1. No fluxo de criação da OS, persista a OS primeiro para obter seu UUID e chame `replace(osId, meiosAceitos)` no mesmo método transacional do serviço de OS. Uma falha em qualquer etapa deve reverter ambas as gravações.
