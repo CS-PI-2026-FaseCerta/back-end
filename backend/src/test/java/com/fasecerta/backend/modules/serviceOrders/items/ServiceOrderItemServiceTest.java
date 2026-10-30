@@ -20,9 +20,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -60,13 +60,13 @@ class ServiceOrderItemServiceTest {
         servico = new ServicesEntity();
         servico.setId(servicoId);
         servico.setValorBase(new BigDecimal("120.00"));
-
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
     }
 
     @Test
     void deveAdicionarServicoComValorNegociado() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
         when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
                 .thenReturn(Optional.of(servico));
 
@@ -94,6 +94,9 @@ class ServiceOrderItemServiceTest {
 
     @Test
     void deveUtilizarValorBaseQuandoNaoInformarValorNegociado() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
         when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
                 .thenReturn(Optional.of(servico));
 
@@ -117,6 +120,9 @@ class ServiceOrderItemServiceTest {
 
     @Test
     void devePreservarValorHistoricoMesmoAposAlteracaoDoCatalogo() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
         when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
                 .thenReturn(Optional.of(servico));
 
@@ -195,6 +201,9 @@ class ServiceOrderItemServiceTest {
 
     @Test
     void deveRejeitarServicoInexistenteOuExcluido() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
         when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
                 .thenReturn(Optional.empty());
 
@@ -235,6 +244,9 @@ class ServiceOrderItemServiceTest {
 
     @Test
     void deveCalcularSubtotalDaOrdemServico() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
         when(itemRepository.calcularSubtotal(ordemServicoId))
                 .thenReturn(new BigDecimal("350.00"));
 
@@ -245,6 +257,9 @@ class ServiceOrderItemServiceTest {
 
     @Test
     void deveListarItensDaOrdemServico() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
         ServiceOrderItemEntity item = new ServiceOrderItemEntity();
         item.setId(UUID.randomUUID());
         item.setOrdemServico(ordemServico);
@@ -270,6 +285,9 @@ class ServiceOrderItemServiceTest {
 
     @Test
     void deveRetornarListaVaziaQuandoOrdemServicoNaoPossuirItens() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
         when(itemRepository.findAllByOrdemServico_Id(ordemServicoId))
                 .thenReturn(List.of());
 
@@ -296,6 +314,9 @@ class ServiceOrderItemServiceTest {
 
     @Test
     void deveRetornarSubtotalZeroQuandoNaoExistiremItens() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
         when(itemRepository.calcularSubtotal(ordemServicoId))
                 .thenReturn(BigDecimal.ZERO);
 
@@ -317,5 +338,4 @@ class ServiceOrderItemServiceTest {
 
         verify(itemRepository, never()).calcularSubtotal(any());
     }
-
 }
