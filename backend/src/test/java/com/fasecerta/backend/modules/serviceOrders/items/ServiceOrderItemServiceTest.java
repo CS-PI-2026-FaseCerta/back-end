@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -241,4 +242,80 @@ class ServiceOrderItemServiceTest {
 
         assertEquals(0, new BigDecimal("350.00").compareTo(subtotal));
     }
+
+    @Test
+    void deveListarItensDaOrdemServico() {
+        ServiceOrderItemEntity item = new ServiceOrderItemEntity();
+        item.setId(UUID.randomUUID());
+        item.setOrdemServico(ordemServico);
+        item.setServico(servico);
+        item.setQuantidade(2);
+        item.setValorUnitarioCobrado(new BigDecimal("120.00"));
+        item.setValorTotalItem(new BigDecimal("240.00"));
+
+        when(itemRepository.findAllByOrdemServico_Id(ordemServicoId))
+                .thenReturn(List.of(item));
+
+        List<ServiceOrderItemResponse> response = itemService.listItems(ordemServicoId);
+
+        assertEquals(1, response.size());
+        assertEquals(servicoId, response.get(0).servicoId());
+        assertEquals(2, response.get(0).quantidade());
+
+        assertEquals(0, new BigDecimal("240.00")
+                .compareTo(response.get(0).valorTotalItem()));
+
+        verify(itemRepository).findAllByOrdemServico_Id(ordemServicoId);
+    }
+
+    @Test
+    void deveRetornarListaVaziaQuandoOrdemServicoNaoPossuirItens() {
+        when(itemRepository.findAllByOrdemServico_Id(ordemServicoId))
+                .thenReturn(List.of());
+
+        List<ServiceOrderItemResponse> response = itemService.listItems(ordemServicoId);
+
+        assertNotNull(response);
+        assertTrue(response.isEmpty());
+    }
+
+    @Test
+    void deveRejeitarListagemDeItensDeOrdemServicoInexistente() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.listItems(ordemServicoId));
+
+        assertEquals(404, exception.getStatusCode().value());
+
+        verify(itemRepository, never())
+                .findAllByOrdemServico_Id(any());
+    }
+
+    @Test
+    void deveRetornarSubtotalZeroQuandoNaoExistiremItens() {
+        when(itemRepository.calcularSubtotal(ordemServicoId))
+                .thenReturn(BigDecimal.ZERO);
+
+        BigDecimal subtotal = itemService.calculateSubtotal(ordemServicoId);
+
+        assertEquals(0, BigDecimal.ZERO.compareTo(subtotal));
+    }
+
+    @Test
+    void deveRejeitarCalculoDeSubtotalDeOrdemServicoInexistente() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.calculateSubtotal(ordemServicoId));
+
+        assertEquals(404, exception.getStatusCode().value());
+
+        verify(itemRepository, never()).calcularSubtotal(any());
+    }
+
 }
