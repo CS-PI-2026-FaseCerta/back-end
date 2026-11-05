@@ -1,4 +1,3 @@
-
 package com.fasecerta.backend.modules.serviceOrders.items;
 
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersEntity;
@@ -337,5 +336,169 @@ class ServiceOrderItemServiceTest {
         assertEquals(404, exception.getStatusCode().value());
 
         verify(itemRepository, never()).calcularSubtotal(any());
+    }
+
+    @Test
+    void deveRejeitarRequisicaoNula() {
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.addItem(ordemServicoId, null));
+
+        assertEquals(400, exception.getStatusCode().value());
+
+        verifyNoInteractions(
+                ordemServicoRepository,
+                servicesRepository,
+                itemRepository);
+    }
+
+    @Test
+    void deveRejeitarIdentificadorDaOrdemServicoNulo() {
+        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                servicoId,
+                1,
+                null,
+                null);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.addItem(null, request));
+
+        assertEquals(400, exception.getStatusCode().value());
+
+        verifyNoInteractions(
+                ordemServicoRepository,
+                servicesRepository,
+                itemRepository);
+    }
+
+    @Test
+    void deveRejeitarIdentificadorDoServicoNulo() {
+        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                null,
+                1,
+                null,
+                null);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.addItem(ordemServicoId, request));
+
+        assertEquals(400, exception.getStatusCode().value());
+
+        verifyNoInteractions(
+                ordemServicoRepository,
+                servicesRepository,
+                itemRepository);
+    }
+
+    @Test
+    void deveRejeitarValorComMaisDeDuasCasasDecimais() {
+        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                servicoId,
+                1,
+                new BigDecimal("100.001"),
+                null);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.addItem(ordemServicoId, request));
+
+        assertEquals(400, exception.getStatusCode().value());
+
+        verifyNoInteractions(
+                ordemServicoRepository,
+                servicesRepository,
+                itemRepository);
+    }
+
+    @Test
+    void deveRejeitarValorAcimaDaPrecisaoPermitida() {
+        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                servicoId,
+                1,
+                new BigDecimal("100000000000000000.00"),
+                null);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.addItem(ordemServicoId, request));
+
+        assertEquals(400, exception.getStatusCode().value());
+
+        verifyNoInteractions(
+                ordemServicoRepository,
+                servicesRepository,
+                itemRepository);
+    }
+
+    @Test
+    void deveRejeitarValorBaseNulo() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
+        servico.setValorBase(null);
+
+        when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
+                .thenReturn(Optional.of(servico));
+
+        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                servicoId,
+                1,
+                null,
+                null);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.addItem(ordemServicoId, request));
+
+        assertEquals(400, exception.getStatusCode().value());
+
+        verify(itemRepository, never()).save(any());
+    }
+
+    @Test
+    void deveRejeitarValorBaseNegativo() {
+        when(ordemServicoRepository.findById(ordemServicoId))
+                .thenReturn(Optional.of(ordemServico));
+
+        servico.setValorBase(new BigDecimal("-50.00"));
+
+        when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
+                .thenReturn(Optional.of(servico));
+
+        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                servicoId,
+                1,
+                null,
+                null);
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.addItem(ordemServicoId, request));
+
+        assertEquals(400, exception.getStatusCode().value());
+
+        verify(itemRepository, never()).save(any());
+    }
+
+    @Test
+    void deveRejeitarObservacaoAcimaDoLimite() {
+        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                servicoId,
+                1,
+                null,
+                "a".repeat(5001));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> itemService.addItem(ordemServicoId, request));
+
+        assertEquals(400, exception.getStatusCode().value());
+
+        verifyNoInteractions(
+                ordemServicoRepository,
+                servicesRepository,
+                itemRepository);
     }
 }
