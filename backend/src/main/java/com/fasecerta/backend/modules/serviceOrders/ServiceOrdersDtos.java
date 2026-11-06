@@ -41,19 +41,11 @@ public final class ServiceOrdersDtos {
             UUID servicoId,
 
             @NotNull(message = "quantidade é obrigatória")
-            @DecimalMin(
-                    value = "0",
-                    inclusive = false,
-                    message = "quantidade deve ser maior que zero")
+            @DecimalMin(value = "0", inclusive = false, message = "quantidade deve ser maior que zero")
             BigDecimal quantidade,
 
-            @DecimalMin(
-                    value = "0",
-                    message = "valorUnitario não pode ser negativo")
-            @Digits(
-                    integer = 17,
-                    fraction = 2,
-                    message = "valorUnitario deve possuir no máximo duas casas decimais")
+            @DecimalMin(value = "0", message = "valorUnitario não pode ser negativo")
+            @Digits(integer = 17, fraction = 2, message = "valorUnitario deve possuir no máximo duas casas decimais")
             BigDecimal valorUnitario,
 
             String observacao) {
@@ -64,26 +56,16 @@ public final class ServiceOrdersDtos {
             DiscountType tipo,
 
             @NotNull(message = "valor do desconto é obrigatório")
-            @DecimalMin(
-                    value = "0",
-                    message = "valor do desconto não pode ser negativo")
-            @Digits(
-                    integer = 17,
-                    fraction = 2,
-                    message = "valor do desconto deve possuir no máximo duas casas decimais")
+            @DecimalMin(value = "0", message = "valor do desconto não pode ser negativo")
+            @Digits(integer = 17, fraction = 2, message = "valor do desconto deve possuir no máximo duas casas decimais")
             BigDecimal valor) {
     }
 
     public record PaymentRequest(
             PaymentCondition condicao,
 
-            @DecimalMin(
-                    value = "0",
-                    message = "valorEntrada não pode ser negativo")
-            @Digits(
-                    integer = 17,
-                    fraction = 2,
-                    message = "valorEntrada deve possuir no máximo duas casas decimais")
+            @DecimalMin(value = "0", message = "valorEntrada não pode ser negativo")
+            @Digits(integer = 17, fraction = 2, message = "valorEntrada deve possuir no máximo duas casas decimais")
             BigDecimal valorEntrada,
 
             @Positive(message = "quantidadeParcelas deve ser maior que zero")
