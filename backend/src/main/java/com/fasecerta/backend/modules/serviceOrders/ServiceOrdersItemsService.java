@@ -80,6 +80,25 @@ public class ServiceOrdersItemsService {
         return List.copyOf(itens);
     }
 
+    public BigDecimal calcularSubtotal(List<ServiceOrdersItemEntity> itens) {
+        if (itens == null || itens.isEmpty()) {
+            throw erro("A OS deve possuir pelo menos um serviço");
+        }
+
+        BigDecimal subtotal = new BigDecimal("0.00");
+
+        for (ServiceOrdersItemEntity item : itens) {
+            if (item == null) {
+                throw erro("A lista não pode conter item nulo");
+            }
+
+            BigDecimal totalItem = validarMonetario(item.getValorTotalItem(), "valorTotalItem");
+            subtotal = validarMonetario(subtotal.add(totalItem), "valorSubtotal");
+        }
+
+        return subtotal;
+    }
+
     private void validarQuantidade(BigDecimal quantidade) {
         if (quantidade == null || quantidade.signum() <= 0) {
             throw erro("quantidade deve ser maior que zero");
