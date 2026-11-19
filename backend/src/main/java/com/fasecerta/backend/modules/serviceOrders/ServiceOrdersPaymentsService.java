@@ -6,6 +6,10 @@ import java.math.BigDecimal;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import com.fasecerta.backend.shared.enums.PaymentMethod;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
 
 @Service
 public class ServiceOrdersPaymentsService {
@@ -35,5 +39,25 @@ public class ServiceOrdersPaymentsService {
         ordem.setQuantidadeParcelas(parcelado ? parcelas : null);
         ordem.setDescricaoParcelamento(parcelado ? descricao : null);
         ordem.setDetalhesPagamento(pagamento == null ? null : pagamento.detalhes());
+    }
+
+    public List<ServiceOrdersPaymentMethodEntity> prepararMeios(ServiceOrdersEntity ordem, PaymentRequest pagamento) {
+
+        if (pagamento == null || pagamento.meios() == null) {
+            return List.of();
+        }
+
+        var selecionados = EnumSet.noneOf(PaymentMethod.class);
+        List<ServiceOrdersPaymentMethodEntity> meios = new ArrayList<>();
+
+        for (PaymentMethod meio : pagamento.meios()) {
+            if (meio == null || !selecionados.add(meio)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Meio de pagamento nulo ou repetido");
+            }
+
+            meios.add(new ServiceOrdersPaymentMethodEntity(ordem, meio));
+        }
+
+        return List.copyOf(meios);
     }
 }
