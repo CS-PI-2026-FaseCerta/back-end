@@ -28,6 +28,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasecerta.backend.shared.enums.DiscountType;
+import com.fasecerta.backend.shared.enums.PaymentCondition;
+import com.fasecerta.backend.shared.enums.PaymentMethod;
+import java.util.Set;
+
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:os_cadastro;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
 })
@@ -55,6 +60,9 @@ class ServiceOrdersCadastroTest {
 
     @Autowired
     private ServiceOrdersItemRepository itens;
+
+    @Autowired
+    private ServiceOrdersPaymentMethodRepository meios;
 
     private UUID usuarioId;
     private UUID clienteId;
@@ -134,5 +142,47 @@ class ServiceOrdersCadastroTest {
         assertNull(ordem.getDescontoDigitado());
         assertNull(ordem.getCondicaoPagamento());
         assertEquals(1, itens.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(id).size());
+    }
+
+    @Test
+    void cadastraOrdemComDescontoCondicaoEMeios() throws Exception {
+        UUID id = lerId(enviar("""
+                ,"desconto": {
+                "tipo": "PERCENTUAL",
+                "valor": 10
+                },
+                "pagamento": {
+                "condicao": "PARCELADO",
+                "valorEntrada": 100,
+                "quantidadeParcelas": 3,
+                "descricaoParcelamento": "Sem juros",
+                "detalhes": "Vencimento mensal",
+                "meios": ["PIX", "BOLETO"]
+                }
+                """)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.valorSubtotal").value(700.0))
+                .andExpect(jsonPath("$.desconto.valorDescontoCalculado").value(70.0))
+                .andExpect(jsonPath("$.valorTotal").value(630.0))
+                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").value(3))
+                .andExpect(jsonPath("$.pagamento.meios.length()").value(2)));
+
+        ServiceOrdersEntity ordem = ordens.findById(id).orElseThrow();
+
+        assertEquals(DiscountType.PERCENTUAL, ordem.getDescontoTipo());
+        assertEquals(new BigDecimal("70.00"), ordem.getValorDescontoCalculado());
+        assertEquals(new BigDecimal("630.00"), ordem.getValorTotal());
+        assertEquals(PaymentCondition.PARCELADO, ordem.getCondicaoPagamento());
+        assertEquals(new BigDecimal("100.00"), ordem.getValorEntrada());
+        assertEquals(Integer.valueOf(3), ordem.getQuantidadeParcelas());
+        assertEquals("Sem juros", ordem.getDescricaoParcelamento());
+        assertEquals("Vencimento mensal", ordem.getDetalhesPagamento());
+
+        var registrados = meios.findAllByOrdem_Id(id).stream()
+                .map(ServiceOrdersPaymentMethodEntity::getMeioPagamento)
+                .toList();
+
+        assertEquals(2, registrados.size());
+        assertEquals(Set.of(PaymentMethod.PIX, PaymentMethod.BOLETO), Set.copyOf(registrados));
     }
 }
