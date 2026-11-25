@@ -16,6 +16,7 @@ import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.DiscountRes
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.PaymentResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderResponse;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.CreateServiceOrderRequest;
 import java.util.List;
 
 import java.util.UUID;
@@ -24,9 +25,32 @@ import java.util.UUID;
 public class ServiceOrdersService {
 
     private final CustomerRepository customerRepository;
+    private final ServiceOrdersRepository ordersRepository;
+    private final ServiceOrdersItemRepository itemRepository;
+    private final ServiceOrdersPaymentMethodRepository paymentMethodRepository;
+    private final ServiceOrdersItemsService itemsService;
+    private final ServiceOrdersDiscountService discountService;
+    private final ServiceOrdersPaymentsService paymentsService;
+    private final ServiceOrdersNumberService numberService;
 
-    public ServiceOrdersService(CustomerRepository customerRepository) {
+    public ServiceOrdersService(
+            CustomerRepository customerRepository,
+            ServiceOrdersRepository ordersRepository,
+            ServiceOrdersItemRepository itemRepository,
+            ServiceOrdersPaymentMethodRepository paymentMethodRepository,
+            ServiceOrdersItemsService itemsService,
+            ServiceOrdersDiscountService discountService,
+            ServiceOrdersPaymentsService paymentsService,
+            ServiceOrdersNumberService numberService) {
+
         this.customerRepository = customerRepository;
+        this.ordersRepository = ordersRepository;
+        this.itemRepository = itemRepository;
+        this.paymentMethodRepository = paymentMethodRepository;
+        this.itemsService = itemsService;
+        this.discountService = discountService;
+        this.paymentsService = paymentsService;
+        this.numberService = numberService;
     }
 
     @Transactional(readOnly = true)
@@ -89,6 +113,28 @@ public class ServiceOrdersService {
                 ordem.getValorTotal(),
                 pagamento,
                 ordem.getCreatedAt());
+    }
+
+    @Transactional
+    public ServiceOrderResponse cadastrar(CreateServiceOrderRequest request, Authentication authentication) {
+
+        ServiceOrdersEntity ordem = prepararNovaOrdem(request.clienteId(), authentication);
+
+        var itens = itemsService.prepararItens(ordem, request.servicos());
+        ordem.setValorSubtotal(itemsService.calcularSubtotal(itens));
+
+        discountService.aplicarDesconto(ordem, request.desconto());
+        paymentsService.aplicarCondicao(ordem, request.pagamento());
+
+        var meios = paymentsService.prepararMeios(ordem, request.pagamento());
+
+        numberService.atribuirNumero(ordem);
+
+        ordersRepository.save(ordem);
+        itemRepository.saveAll(itens);
+        paymentMethodRepository.saveAll(meios);
+
+        return montarResposta(ordem, itens, meios);
     }
 
     private UUID obterUsuarioAutenticado(Authentication authentication) {
