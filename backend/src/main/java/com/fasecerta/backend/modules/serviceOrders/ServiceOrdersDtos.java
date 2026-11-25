@@ -12,6 +12,12 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.ValueDeserializer;
+import tools.jackson.databind.annotation.JsonDeserialize;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,24 +25,24 @@ import java.util.UUID;
 
 public final class ServiceOrdersDtos {
 
-    private ServiceOrdersDtos() {
-    }
+        private ServiceOrdersDtos() {
+        }
 
-    public record CreateServiceOrderRequest(
-            @NotNull(message = "clienteId é obrigatório")
-            UUID clienteId,
+        public record CreateServiceOrderRequest(
+                @NotNull(message = "clienteId é obrigatório")
+                UUID clienteId,
 
-            @NotEmpty(message = "A OS deve possuir pelo menos um serviço")
-            List<@NotNull @Valid ServiceItemRequest> servicos,
+                @NotEmpty(message = "A OS deve possuir pelo menos um serviço")
+                List<@NotNull @Valid ServiceItemRequest> servicos,
 
-            @Valid
-            DiscountRequest desconto,
+                @Valid
+                DiscountRequest desconto,
 
-            @Valid
-            PaymentRequest pagamento) {
-    }
+                @Valid
+                PaymentRequest pagamento) {
+        }
 
-    public record ServiceItemRequest(
+        public record ServiceItemRequest(
             @NotNull(message = "servicoId é obrigatório")
             UUID servicoId,
 
@@ -49,69 +55,81 @@ public final class ServiceOrdersDtos {
             BigDecimal valorUnitario,
 
             String observacao) {
-    }
+        }
 
-    public record DiscountRequest(
-            @NotNull(message = "tipo do desconto é obrigatório")
-            DiscountType tipo,
+        public record DiscountRequest(
+                @NotNull(message = "tipo do desconto é obrigatório")
+                DiscountType tipo,
 
-            @NotNull(message = "valor do desconto é obrigatório")
-            @DecimalMin(value = "0", message = "valor do desconto não pode ser negativo")
-            @Digits(integer = 17, fraction = 2, message = "valor do desconto deve possuir no máximo duas casas decimais")
-            BigDecimal valor) {
-    }
+                @NotNull(message = "valor do desconto é obrigatório")
+                @DecimalMin(value = "0", message = "valor do desconto não pode ser negativo")
+                @Digits(integer = 17, fraction = 2, message = "valor do desconto deve possuir no máximo duas casas decimais")
+                BigDecimal valor) {
+        }
 
-    public record PaymentRequest(
-            PaymentCondition condicao,
+        public record PaymentRequest(
+                PaymentCondition condicao,
 
-            @DecimalMin(value = "0", message = "valorEntrada não pode ser negativo")
-            @Digits(integer = 17, fraction = 2, message = "valorEntrada deve possuir no máximo duas casas decimais")
-            BigDecimal valorEntrada,
+                @DecimalMin(value = "0", message = "valorEntrada não pode ser negativo")
+                @Digits(integer = 17, fraction = 2, message = "valorEntrada deve possuir no máximo duas casas decimais")
+                BigDecimal valorEntrada,
 
-            @Positive(message = "quantidadeParcelas deve ser maior que zero")
-            Integer quantidadeParcelas,
+                @Positive(message = "quantidadeParcelas deve ser maior que zero")
+                @JsonDeserialize(using = ParcelasInteiras.class)
+                Integer quantidadeParcelas,
 
-            String descricaoParcelamento,
+                String descricaoParcelamento,
 
-            String detalhes,
+                String detalhes,
 
-            List<@NotNull PaymentMethod> meios) {
-    }
+                List<@NotNull PaymentMethod> meios) {
+        }
 
-    public record ServiceOrderResponse(
-            UUID id,
-            Long numeroOs,
-            UUID clienteId,
-            StatusOS status,
-            List<ServiceItemResponse> servicos,
-            BigDecimal valorSubtotal,
-            DiscountResponse desconto,
-            BigDecimal valorTotal,
-            PaymentResponse pagamento,
-            LocalDateTime createdAt) {
-    }
+        public record ServiceOrderResponse(
+                UUID id,
+                Long numeroOs,
+                UUID clienteId,
+                StatusOS status,
+                List<ServiceItemResponse> servicos,
+                BigDecimal valorSubtotal,
+                DiscountResponse desconto,
+                BigDecimal valorTotal,
+                PaymentResponse pagamento,
+                LocalDateTime createdAt) {
+        }
 
-    public record ServiceItemResponse(
-            UUID id,
-            UUID servicoId,
-            BigDecimal quantidade,
-            BigDecimal valorUnitarioCobrado,
-            BigDecimal valorTotalItem,
-            String observacao) {
-    }
+        public record ServiceItemResponse(
+                UUID id,
+                UUID servicoId,
+                BigDecimal quantidade,
+                BigDecimal valorUnitarioCobrado,
+                BigDecimal valorTotalItem,
+                String observacao) {
+        }
 
-    public record DiscountResponse(
-            DiscountType tipo,
-            BigDecimal valor,
-            BigDecimal valorDescontoCalculado) {
-    }
+        public record DiscountResponse(
+                DiscountType tipo,
+                BigDecimal valor,
+                BigDecimal valorDescontoCalculado) {
+        }
 
-    public record PaymentResponse(
-            PaymentCondition condicao,
-            BigDecimal valorEntrada,
-            Integer quantidadeParcelas,
-            String descricaoParcelamento,
-            String detalhes,
-            List<PaymentMethod> meios) {
-    }
+        public record PaymentResponse(
+                PaymentCondition condicao,
+                BigDecimal valorEntrada,
+                Integer quantidadeParcelas,
+                String descricaoParcelamento,
+                String detalhes,
+                List<PaymentMethod> meios) {
+        }
+
+        public static final class ParcelasInteiras extends ValueDeserializer<Integer> {
+
+        @Override
+        public Integer deserialize(JsonParser parser, DeserializationContext context) {
+                if (!parser.hasToken(JsonToken.VALUE_NUMBER_INT)) {
+                        return context.reportInputMismatch(Integer.class, "quantidadeParcelas deve ser um número inteiro");
+                }
+                        return parser.getIntValue();
+                }
+        }
 }
