@@ -34,6 +34,15 @@ import com.fasecerta.backend.shared.enums.PaymentMethod;
 import java.util.Set;
 import java.util.List;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.web.server.ResponseStatusException;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:os_cadastro;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
 })
@@ -62,11 +71,14 @@ class ServiceOrdersCadastroTest {
     @Autowired
     private ServiceOrdersItemRepository itens;
 
-    @Autowired
+    @MockitoSpyBean
     private ServiceOrdersPaymentMethodRepository meios;
 
     @Autowired
     private ServiceOrdersNumberRepository numeros;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private UUID usuarioId;
     private UUID clienteId;
@@ -248,4 +260,36 @@ class ServiceOrdersCadastroTest {
 
         assertEquals(ordensAntes, ordens.count());
    }
+
+   @Test
+   void desfazOrdemItensMeiosENumeroSeFalharDepoisDoFlush() throws Exception {
+        long ordensAntes = ordens.count();
+        long itensAntes = itens.count();
+        long meiosAntes = meios.count();
+        long numerosAntes = numeros.count();
+
+        doAnswer(invocation -> {
+                Iterable<ServiceOrdersPaymentMethodEntity> registros =
+                        invocation.getArgument(0);
+
+                for (ServiceOrdersPaymentMethodEntity registro : registros) {
+                entityManager.persist(registro);
+                }
+
+                entityManager.flush();
+
+                throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Falha simulada após gravar");
+        }).when(meios).saveAll(any());
+
+        enviar(",\"pagamento\":{\"meios\":[\"PIX\"]}")
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Falha simulada após gravar"));
+
+        assertEquals(ordensAntes, ordens.count());
+        assertEquals(itensAntes, itens.count());
+        assertEquals(meiosAntes, meios.count());
+        assertEquals(numerosAntes, numeros.count());
+    }
 }
