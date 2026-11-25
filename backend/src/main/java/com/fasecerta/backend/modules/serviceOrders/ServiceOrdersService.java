@@ -12,6 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.DiscountResponse;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.PaymentResponse;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemResponse;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderResponse;
+import java.util.List;
+
 import java.util.UUID;
 
 @Service
@@ -24,9 +30,7 @@ public class ServiceOrdersService {
     }
 
     @Transactional(readOnly = true)
-    public ServiceOrdersEntity prepararNovaOrdem(
-            UUID clienteId,
-            Authentication authentication) {
+    public ServiceOrdersEntity prepararNovaOrdem(UUID clienteId, Authentication authentication) {
 
         UUID usuarioId = obterUsuarioAutenticado(authentication);
 
@@ -47,10 +51,49 @@ public class ServiceOrdersService {
         return ordem;
     }
 
+    private ServiceOrderResponse montarResposta(ServiceOrdersEntity ordem, List<ServiceOrdersItemEntity> itens, List<ServiceOrdersPaymentMethodEntity> meios) { 
+
+        List<ServiceItemResponse> servicos = itens.stream()
+                .map(item -> new ServiceItemResponse(
+                        item.getId(),
+                        item.getServicoId(),
+                        item.getQuantidade(),
+                        item.getValorUnitarioCobrado(),
+                        item.getValorTotalItem(),
+                        item.getObservacao()))
+                .toList();
+
+        DiscountResponse desconto = new DiscountResponse(
+                ordem.getDescontoTipo(),
+                ordem.getDescontoDigitado(),
+                ordem.getValorDescontoCalculado());
+
+        PaymentResponse pagamento = new PaymentResponse(
+                ordem.getCondicaoPagamento(),
+                ordem.getValorEntrada(),
+                ordem.getQuantidadeParcelas(),
+                ordem.getDescricaoParcelamento(),
+                ordem.getDetalhesPagamento(),
+                meios.stream()
+                        .map(ServiceOrdersPaymentMethodEntity::getMeioPagamento)
+                        .toList());
+
+        return new ServiceOrderResponse(
+                ordem.getId(),
+                ordem.getNumeroOs(),
+                ordem.getCliente().getId(),
+                ordem.getStatus(),
+                servicos,
+                ordem.getValorSubtotal(),
+                desconto,
+                ordem.getValorTotal(),
+                pagamento,
+                ordem.getCreatedAt());
+    }
+
     private UUID obterUsuarioAutenticado(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
-            throw new UnauthenticatedException(
-                    "Usuário não autenticado");
+            throw new UnauthenticatedException("Usuário não autenticado");
         }
 
         String usuarioId = authentication.getName();
