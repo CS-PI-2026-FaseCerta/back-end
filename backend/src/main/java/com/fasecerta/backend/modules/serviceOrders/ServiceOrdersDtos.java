@@ -17,6 +17,7 @@ import tools.jackson.core.JsonToken;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.ValueDeserializer;
 import tools.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.BeanProperty;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -59,6 +60,7 @@ public final class ServiceOrdersDtos {
 
         public record DiscountRequest(
                 @NotNull(message = "tipo do desconto é obrigatório")
+                @JsonDeserialize(using = EnumPorNome.class)
                 DiscountType tipo,
 
                 @NotNull(message = "valor do desconto é obrigatório")
@@ -68,6 +70,7 @@ public final class ServiceOrdersDtos {
         }
 
         public record PaymentRequest(
+                @JsonDeserialize(using = EnumPorNome.class)
                 PaymentCondition condicao,
 
                 @DecimalMin(value = "0", message = "valorEntrada não pode ser negativo")
@@ -82,6 +85,7 @@ public final class ServiceOrdersDtos {
 
                 String detalhes,
 
+                @JsonDeserialize(contentUsing = EnumPorNome.class)
                 List<@NotNull PaymentMethod> meios) {
         }
 
@@ -130,6 +134,59 @@ public final class ServiceOrdersDtos {
                         return context.reportInputMismatch(Integer.class, "quantidadeParcelas deve ser um número inteiro");
                 }
                         return parser.getIntValue();
+                }
+        }
+
+        public static final class EnumPorNome extends ValueDeserializer<Enum<?>> {
+
+                private final Class<?> tipo;
+
+                public EnumPorNome() {
+                        this(null);
+                }
+
+                private EnumPorNome(Class<?> tipo) {
+                        this.tipo = tipo;
+                }
+
+                @Override
+                public ValueDeserializer<?> createContextual(DeserializationContext context, BeanProperty property) {
+
+                        var tipoContextual = context.getContextualType();
+
+                        if (tipoContextual == null) {
+                                tipoContextual = property.getType();
+                        }
+
+                        if (tipoContextual.isContainerType()) {
+                                tipoContextual = tipoContextual.getContentType();
+                        }
+
+                        return new EnumPorNome(tipoContextual.getRawClass());
+                }
+
+                @Override
+                public Enum<?> deserialize(
+                        JsonParser parser,
+                        DeserializationContext context) {
+
+                        if (parser.hasToken(JsonToken.VALUE_STRING)) {
+                        String nome = parser.getString();
+
+                        for (Object constante : tipo.getEnumConstants()) {
+                                Enum<?> valor = (Enum<?>) constante;
+
+                                if (valor.name().equals(nome)) {
+                                return valor;
+                                }
+                        }
+                        }
+
+                        return context.reportInputMismatch(
+                                tipo,
+                                "Informe um nome válido para %s",
+                                tipo.getSimpleName()
+                        );
                 }
         }
 }
