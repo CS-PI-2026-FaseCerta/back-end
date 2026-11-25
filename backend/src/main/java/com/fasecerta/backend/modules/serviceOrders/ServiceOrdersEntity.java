@@ -30,11 +30,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "ordens_servico",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_os_numero",
-                columnNames = "numero_os"))
+@Table(name = "ordens_servico", uniqueConstraints = @UniqueConstraint(name = "uk_os_numero", columnNames = "numero_os"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -42,31 +38,21 @@ public class ServiceOrdersEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(
-            nullable = false,
-            updatable = false,
-            columnDefinition = "BINARY(16)")
+    @Column(nullable = false, updatable = false, columnDefinition = "BINARY(16)")
     private UUID id;
 
     @Column(name = "numero_os", nullable = false, updatable = false)
     private Long numeroOs;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "cliente_id",
-            nullable = false,
-            foreignKey = @ForeignKey(name = "fk_os_cliente"))
+    @JoinColumn(name = "cliente_id", nullable = false, foreignKey = @ForeignKey(name = "fk_os_cliente"))
     private CustomerEntity cliente;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StatusOS status = StatusOS.EM_ABERTO;
 
-    @Column(
-            name = "valor_subtotal",
-            nullable = false,
-            precision = 19,
-            scale = 2)
+    @Column(name = "valor_subtotal", nullable = false, precision = 19, scale = 2)
     private BigDecimal valorSubtotal = new BigDecimal("0.00");
 
     @Enumerated(EnumType.STRING)
@@ -76,18 +62,10 @@ public class ServiceOrdersEntity {
     @Column(name = "desconto_digitado", precision = 19, scale = 2)
     private BigDecimal descontoDigitado;
 
-    @Column(
-            name = "valor_desconto_calculado",
-            nullable = false,
-            precision = 19,
-            scale = 2)
+    @Column(name = "valor_desconto_calculado", nullable = false, precision = 19, scale = 2)
     private BigDecimal valorDescontoCalculado = new BigDecimal("0.00");
 
-    @Column(
-            name = "valor_total",
-            nullable = false,
-            precision = 19,
-            scale = 2)
+    @Column(name = "valor_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal valorTotal = new BigDecimal("0.00");
 
     @Enumerated(EnumType.STRING)
@@ -106,11 +84,7 @@ public class ServiceOrdersEntity {
     @Column(name = "detalhes_pagamento", columnDefinition = "TEXT")
     private String detalhesPagamento;
 
-    @Column(
-            name = "created_by",
-            nullable = false,
-            updatable = false,
-            columnDefinition = "BINARY(16)")
+    @Column(name = "created_by", nullable = false, updatable = false, columnDefinition = "BINARY(16)")
     private UUID createdBy;
 
     @Column(name = "updated_by", columnDefinition = "BINARY(16)")
