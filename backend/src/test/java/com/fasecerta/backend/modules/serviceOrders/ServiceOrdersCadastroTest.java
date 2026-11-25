@@ -32,6 +32,7 @@ import com.fasecerta.backend.shared.enums.DiscountType;
 import com.fasecerta.backend.shared.enums.PaymentCondition;
 import com.fasecerta.backend.shared.enums.PaymentMethod;
 import java.util.Set;
+import java.util.List;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:os_cadastro;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
@@ -63,6 +64,9 @@ class ServiceOrdersCadastroTest {
 
     @Autowired
     private ServiceOrdersPaymentMethodRepository meios;
+
+    @Autowired
+    private ServiceOrdersNumberRepository numeros;
 
     private UUID usuarioId;
     private UUID clienteId;
@@ -185,4 +189,42 @@ class ServiceOrdersCadastroTest {
         assertEquals(2, registrados.size());
         assertEquals(Set.of(PaymentMethod.PIX, PaymentMethod.BOLETO), Set.copyOf(registrados));
     }
+
+    @Test
+        void rejeitaDescontosECondicoesInvalidasSemGravarOrdem() throws Exception {
+        long ordensAntes = ordens.count();
+        long itensAntes = itens.count();
+        long meiosAntes = meios.count();
+        long numerosAntes = numeros.count();
+
+        List<String> dadosInvalidos = List.of(
+                ",\"desconto\":{\"tipo\":\"PERCENTUAL\",\"valor\":101}",
+                ",\"desconto\":{\"tipo\":\"PERCENTUAL\",\"valor\":-1}",
+                ",\"desconto\":{\"tipo\":\"VALOR\",\"valor\":701}",
+                ",\"desconto\":{\"tipo\":\"VALOR\",\"valor\":-1}",
+                ",\"desconto\":{\"tipo\":\"OUTRO\",\"valor\":10}",
+                ",\"desconto\":{\"tipo\":0,\"valor\":10}",
+                ",\"pagamento\":{\"condicao\":\"PARCELADO\"}",
+                ",\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":0}",
+                ",\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2.5}",
+                ",\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":\"3\"}",
+                ",\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":-1}",
+                ",\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":701}",
+                ",\"desconto\":{\"tipo\":\"VALOR\",\"valor\":100},"
+                        + "\"pagamento\":{\"condicao\":\"PARCELADO\","
+                        + "\"quantidadeParcelas\":2,\"valorEntrada\":650}",
+                ",\"pagamento\":{\"condicao\":\"OUTRA\"}",
+                ",\"pagamento\":{\"meios\":[\"PIX\",\"PIX\"]}",
+                ",\"pagamento\":{\"meios\":[\"OUTRO\"]}",
+                ",\"pagamento\":{\"meios\":[0]}");
+
+        for (String dados : dadosInvalidos) {
+                enviar(dados).andExpect(status().isBadRequest());
+        }
+
+        assertEquals(ordensAntes, ordens.count());
+        assertEquals(itensAntes, itens.count());
+        assertEquals(meiosAntes, meios.count());
+        assertEquals(numerosAntes, numeros.count());
+        }
 }
