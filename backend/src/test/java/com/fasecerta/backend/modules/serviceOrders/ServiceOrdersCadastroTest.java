@@ -191,7 +191,7 @@ class ServiceOrdersCadastroTest {
     }
 
     @Test
-        void rejeitaDescontosECondicoesInvalidasSemGravarOrdem() throws Exception {
+    void rejeitaDescontosECondicoesInvalidasSemGravarOrdem() throws Exception {
         long ordensAntes = ordens.count();
         long itensAntes = itens.count();
         long meiosAntes = meios.count();
@@ -220,11 +220,32 @@ class ServiceOrdersCadastroTest {
 
         for (String dados : dadosInvalidos) {
                 enviar(dados).andExpect(status().isBadRequest());
-        }
+   }
 
         assertEquals(ordensAntes, ordens.count());
         assertEquals(itensAntes, itens.count());
         assertEquals(meiosAntes, meios.count());
         assertEquals(numerosAntes, numeros.count());
         }
+        
+   @Test
+   void rejeitaCadastroSemToken() throws Exception {
+        long ordensAntes = ordens.count();
+
+        String corpo = """
+                {
+                "clienteId": "%s",
+                "servicos": [
+                        {"servicoId": "%s", "quantidade": 2}
+                ]
+                }
+                """.formatted(clienteId, servicoId);
+
+        mvc.perform(post("/api/ordens-servico")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(corpo))
+                .andExpect(status().isUnauthorized());
+
+        assertEquals(ordensAntes, ordens.count());
+   }
 }
