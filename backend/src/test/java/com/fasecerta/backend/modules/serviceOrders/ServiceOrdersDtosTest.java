@@ -2,6 +2,7 @@ package com.fasecerta.backend.modules.serviceOrders;
 
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.CreateServiceOrderRequest;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemRequest;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemResponse;
 
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -15,6 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -70,6 +72,14 @@ class ServiceOrdersDtosTest {
                 item(1L, new BigDecimal("-0.01"))));
 
         assertFalse(VALIDATOR.validate(request).isEmpty());
+    }
+
+    @Test
+    void preservesRecordedFractionalQuantitiesInHistoricalResponses() {
+        var response = new ServiceItemResponse(UUID.randomUUID(), UUID.randomUUID(),
+                new BigDecimal("1.2500"), new BigDecimal("20.00"), new BigDecimal("25.00"), null);
+
+        assertEquals(new BigDecimal("1.2500"), response.quantidade());
     }
 
     private CreateServiceOrderRequest request(List<ServiceItemRequest> items) {

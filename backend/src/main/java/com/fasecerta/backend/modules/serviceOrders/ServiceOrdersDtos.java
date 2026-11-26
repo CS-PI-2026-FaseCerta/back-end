@@ -132,6 +132,11 @@ public final class ServiceOrdersDtos {
                 BigDecimal valorUnitarioCobrado,
                 BigDecimal valorTotalItem,
                 String observacao) {
+            public ServiceItemResponse {
+                if (quantidade != null && quantidade.stripTrailingZeros().scale() <= 0) {
+                    quantidade = quantidade.setScale(0);
+                }
+            }
         }
 
         public record DiscountResponse(

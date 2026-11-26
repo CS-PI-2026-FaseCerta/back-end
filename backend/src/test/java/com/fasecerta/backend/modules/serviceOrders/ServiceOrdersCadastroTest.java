@@ -38,6 +38,7 @@ import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -303,10 +304,37 @@ class ServiceOrdersCadastroTest {
                 .andExpect(jsonPath("$.desconto.valorDescontoCalculado").value(70.0))
                 .andExpect(jsonPath("$.valorTotal").value(630.0))
                 .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"))
-                .andExpect(jsonPath("$.pagamento.meios.length()").value(2))
+                .andExpect(jsonPath("$.pagamento.valorEntrada").value(100.0))
+                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").value(3))
+                .andExpect(jsonPath("$.pagamento.descricaoParcelamento").value("Sem juros"))
+                .andExpect(jsonPath("$.pagamento.detalhes").value("Vencimento mensal"))
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "BOLETO")))
                 .andExpect(jsonPath("$.createdBy").value(usuarioId.toString()))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.updatedAt").exists());
+    }
+
+    @Test
+    void reusesQuantityAndNegotiatedPriceFromDetailInTheWritePayload() throws Exception {
+        ObjectNode original = validRequest();
+        ((ObjectNode) original.at("/servicos/0")).put("valorUnitario", new BigDecimal("42.75"));
+        UUID id = lerId(submit(original).andExpect(status().isCreated()));
+
+        var response = getOrder(id).andExpect(status().isOk()).andReturn().getResponse();
+        var detail = jsonMapper.readTree(response.getContentAsByteArray());
+        var recorded = detail.at("/servicos/0");
+
+        ObjectNode request = jsonMapper.createObjectNode();
+        request.set("clienteId", detail.required("clienteId"));
+        ObjectNode item = request.putArray("servicos").addObject();
+        item.set("servicoId", recorded.required("servicoId"));
+        item.set("quantidade", recorded.required("quantidade"));
+        item.set("valorUnitario", recorded.required("valorUnitarioCobrado"));
+
+        submit(request).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.servicos[0].quantidade").value(2))
+                .andExpect(jsonPath("$.servicos[0].valorUnitarioCobrado").value(42.75))
+                .andExpect(jsonPath("$.valorTotal").value(85.50));
     }
 
     @Test
