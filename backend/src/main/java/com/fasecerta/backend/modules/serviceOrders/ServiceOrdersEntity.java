@@ -96,6 +96,9 @@ public class ServiceOrdersEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @PrePersist
     private void onCreate() {
         LocalDateTime now = LocalDateTime.now();

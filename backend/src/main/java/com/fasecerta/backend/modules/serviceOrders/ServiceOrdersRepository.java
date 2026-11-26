@@ -9,4 +9,6 @@ public interface ServiceOrdersRepository
         extends JpaRepository<ServiceOrdersEntity, UUID> {
 
     Optional<ServiceOrdersEntity> findByNumeroOs(Long numeroOs);
+
+    Optional<ServiceOrdersEntity> findByIdAndDeletedAtIsNull(UUID id);
 }

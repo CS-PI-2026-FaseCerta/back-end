@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -147,6 +148,59 @@ class ServiceOrdersCadastroTest {
     }
 
     private record Counts(long orders, long items, long paymentMethods, long numbers) {}
+
+    private ResultActions getOrder(UUID id) throws Exception {
+        return mvc.perform(get("/api/ordens-servico/{id}", id)
+                .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")));
+    }
+
+    @Test
+    void readsRecordedOrderAfterCatalogPriceChanges() throws Exception {
+        ObjectNode request = requestWithDiscountAndPayment();
+        ((ObjectNode) request.at("/servicos/0")).put("observacao", "Instalação externa");
+        UUID id = lerId(submit(request).andExpect(status().isCreated()));
+        ServicesEntity service = catalogo.findById(servicoId).orElseThrow();
+        service.setValorBase(new BigDecimal("999.00"));
+        catalogo.saveAndFlush(service);
+
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.numeroOs").isNumber())
+                .andExpect(jsonPath("$.status").value("EM_ABERTO"))
+                .andExpect(jsonPath("$.clienteId").value(clienteId.toString()))
+                .andExpect(jsonPath("$.clienteNome").value("Cliente de teste"))
+                .andExpect(jsonPath("$.servicos[0].servicoId").value(servicoId.toString()))
+                .andExpect(jsonPath("$.servicos[0].quantidade").value(2))
+                .andExpect(jsonPath("$.servicos[0].observacao").value("Instalação externa"))
+                .andExpect(jsonPath("$.servicos[0].valorUnitarioCobrado").value(350.0))
+                .andExpect(jsonPath("$.servicos[0].valorTotalItem").value(700.0))
+                .andExpect(jsonPath("$.valorSubtotal").value(700.0))
+                .andExpect(jsonPath("$.desconto.tipo").value("PERCENTUAL"))
+                .andExpect(jsonPath("$.desconto.valor").value(10.0))
+                .andExpect(jsonPath("$.desconto.valorDescontoCalculado").value(70.0))
+                .andExpect(jsonPath("$.valorTotal").value(630.0))
+                .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"))
+                .andExpect(jsonPath("$.pagamento.meios.length()").value(2))
+                .andExpect(jsonPath("$.createdBy").value(usuarioId.toString()))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.updatedAt").exists());
+    }
+
+    @Test
+    void rejectsUnauthenticatedDetailRequest() throws Exception {
+        mvc.perform(get("/api/ordens-servico/{id}", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void returnsNotFoundForUnknownOrDeletedOrder() throws Exception {
+        getOrder(UUID.randomUUID()).andExpect(status().isNotFound());
+        UUID id = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        var order = ordens.findById(id).orElseThrow();
+        order.setDeletedAt(LocalDateTime.now());
+        ordens.saveAndFlush(order);
+        getOrder(id).andExpect(status().isNotFound());
+    }
 
     private Counts persistedCounts() {
         return new Counts(ordens.count(), itens.count(), meios.count(), numeros.count());

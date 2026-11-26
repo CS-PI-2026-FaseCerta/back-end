@@ -2,6 +2,10 @@ package com.fasecerta.backend.modules.serviceOrders;
 
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.CreateServiceOrderRequest;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderResponse;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderDetailResponse;
+import java.util.UUID;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -19,6 +23,11 @@ public class ServiceOrdersController {
 
     public ServiceOrdersController(ServiceOrdersService service) {
         this.service = service;
+    }
+
+    @GetMapping("/{id}")
+    public ServiceOrderDetailResponse findById(@PathVariable UUID id) {
+        return service.findById(id);
     }
 
     @PostMapping

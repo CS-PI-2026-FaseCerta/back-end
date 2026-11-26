@@ -4,6 +4,8 @@ import com.fasecerta.backend.exceptions.UnauthenticatedException;
 import com.fasecerta.backend.modules.customer.CustomerEntity;
 import com.fasecerta.backend.modules.customer.CustomerRepository;
 import com.fasecerta.backend.shared.enums.StatusOS;
+import com.fasecerta.backend.shared.enums.PersonType;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderDetailResponse;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -113,6 +115,20 @@ public class ServiceOrdersService {
                 ordem.getValorTotal(),
                 pagamento,
                 ordem.getCreatedAt());
+    }
+
+    @Transactional(readOnly = true)
+    public ServiceOrderDetailResponse findById(UUID id) {
+        var order = ordersRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+        var items = itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(id);
+        var methods = paymentMethodRepository.findAllByOrdem_Id(id);
+        var customer = order.getCliente();
+        String customerName = customer.getTipoPessoa() == PersonType.PJ
+                ? customer.getRazaoSocial() : customer.getNomeCompleto();
+
+        return new ServiceOrderDetailResponse(montarResposta(order, items, methods), customerName,
+                order.getCreatedBy(), order.getUpdatedBy(), order.getUpdatedAt());
     }
 
     @Transactional

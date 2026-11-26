@@ -1,5 +1,7 @@
 package com.fasecerta.backend.modules.serviceOrders;
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
+
 import com.fasecerta.backend.shared.enums.DiscountType;
 import com.fasecerta.backend.shared.enums.PaymentCondition;
 import com.fasecerta.backend.shared.enums.PaymentMethod;
@@ -104,6 +106,14 @@ public final class ServiceOrdersDtos {
                 BigDecimal valorTotal,
                 PaymentResponse pagamento,
                 LocalDateTime createdAt) {
+        }
+
+        public record ServiceOrderDetailResponse(
+                @JsonUnwrapped ServiceOrderResponse order,
+                String clienteNome,
+                UUID createdBy,
+                UUID updatedBy,
+                LocalDateTime updatedAt) {
         }
 
         public record ServiceItemResponse(
