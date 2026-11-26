@@ -221,6 +221,45 @@ class ServiceOrdersCadastroTest {
     }
 
     @Test
+    void acceptsCashPaymentWithDetailsAndPaymentMethod() throws Exception {
+        ObjectNode request = validRequest();
+        request.putObject("pagamento")
+                .put("condicao", "A_VISTA")
+                .put("detalhes", "Pagar na entrega")
+                .putArray("meios").add("PIX");
+
+        submit(request)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.pagamento.condicao").value("A_VISTA"))
+                .andExpect(jsonPath("$.pagamento.detalhes").value("Pagar na entrega"))
+                .andExpect(jsonPath("$.pagamento.meios[0]").value("PIX"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"meios\":[\"PIX\"]}",
+            "{\"condicao\":null,\"meios\":[\"PIX\"]}",
+            "{\"detalhes\":\"Pagar na entrega\"}"
+    })
+    void rejectsPaymentDataWithoutCondition(String payment) throws Exception {
+        ObjectNode request = validRequest();
+        request.set("pagamento", jsonMapper.readTree(payment));
+
+        assertRejected(request, HttpStatus.BAD_REQUEST)
+                .andExpect(jsonPath("$.message").value("Informe a condição de pagamento"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "{}", "{\"meios\":null}", "{\"meios\":[]}"})
+    void acceptsEmptyPaymentDataWithoutCondition(String payment) throws Exception {
+        ObjectNode request = validRequest();
+        request.set("pagamento", jsonMapper.readTree(payment));
+        submit(request)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.pagamento.meios").isEmpty());
+    }
+
+    @Test
     void rejectsUnknownCustomer() throws Exception {
         ObjectNode request = validRequest();
         request.put("clienteId", UUID.randomUUID().toString());
@@ -324,10 +363,16 @@ class ServiceOrdersCadastroTest {
             "{\"desconto\":{\"tipo\":\"VALOR\",\"valor\":100},"
                     + "\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":650}}",
             "{\"pagamento\":{\"condicao\":\"OUTRA\"}}",
-            "{\"pagamento\":{\"meios\":[\"PIX\",\"PIX\"]}}",
-            "{\"pagamento\":{\"meios\":[\"OUTRO\"]}}",
-            "{\"pagamento\":{\"meios\":[null]}}",
-            "{\"pagamento\":{\"meios\":[0]}}"
+            "{\"pagamento\":{\"condicao\":\"A_VISTA\",\"quantidadeParcelas\":2}}",
+            "{\"pagamento\":{\"condicao\":\"A_VISTA\",\"descricaoParcelamento\":\"Sem juros\"}}",
+            "{\"pagamento\":{\"condicao\":\"A_VISTA\",\"valorEntrada\":100}}",
+            "{\"pagamento\":{\"quantidadeParcelas\":2}}",
+            "{\"pagamento\":{\"descricaoParcelamento\":\"Sem juros\"}}",
+            "{\"pagamento\":{\"valorEntrada\":100}}",
+            "{\"pagamento\":{\"condicao\":\"A_VISTA\",\"meios\":[\"PIX\",\"PIX\"]}}",
+            "{\"pagamento\":{\"condicao\":\"A_VISTA\",\"meios\":[\"OUTRO\"]}}",
+            "{\"pagamento\":{\"condicao\":\"A_VISTA\",\"meios\":[null]}}",
+            "{\"pagamento\":{\"condicao\":\"A_VISTA\",\"meios\":[0]}}"
     })
     void rejeitaDescontosECondicoesInvalidasSemGravarOrdem(String options) throws Exception {
         ObjectNode request = validRequest();
@@ -361,7 +406,9 @@ class ServiceOrdersCadastroTest {
         }).when(meios).saveAll(any());
 
         ObjectNode request = validRequest();
-        request.putObject("pagamento").putArray("meios").add("PIX");
+        request.putObject("pagamento")
+                .put("condicao", "A_VISTA")
+                .putArray("meios").add("PIX");
         assertRejected(request, HttpStatus.INTERNAL_SERVER_ERROR)
                 .andExpect(jsonPath("$.message").value("Falha simulada após gravar"));
     }

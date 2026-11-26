@@ -19,12 +19,19 @@ public class ServiceOrdersPaymentsService {
         BigDecimal entrada = pagamento == null ? null : pagamento.valorEntrada();
         Integer parcelas = pagamento == null ? null : pagamento.quantidadeParcelas();
         String descricao = pagamento == null ? null : pagamento.descricaoParcelamento();
+        String details = pagamento == null ? null : pagamento.detalhes();
 
-        if (condicao == null && (entrada != null || parcelas != null || descricao != null)) {
+        boolean hasInstallmentFields = entrada != null || parcelas != null || descricao != null;
+        boolean hasPaymentMethods = pagamento != null && pagamento.meios() != null && !pagamento.meios().isEmpty();
+        if (condicao == null && (hasInstallmentFields || details != null || hasPaymentMethods)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe a condição de pagamento");
         }
 
         boolean parcelado = condicao == PaymentCondition.PARCELADO;
+        if (!parcelado && hasInstallmentFields) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Entrada, quantidade de parcelas e descrição do parcelamento exigem pagamento parcelado");
+        }
 
         if (parcelado && (parcelas == null || parcelas <= 0)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe uma quantidade de parcelas maior que zero");
@@ -36,9 +43,9 @@ public class ServiceOrdersPaymentsService {
 
         ordem.setCondicaoPagamento(condicao);
         ordem.setValorEntrada(entrada == null ? null : entrada.setScale(2));
-        ordem.setQuantidadeParcelas(parcelado ? parcelas : null);
-        ordem.setDescricaoParcelamento(parcelado ? descricao : null);
-        ordem.setDetalhesPagamento(pagamento == null ? null : pagamento.detalhes());
+        ordem.setQuantidadeParcelas(parcelas);
+        ordem.setDescricaoParcelamento(descricao);
+        ordem.setDetalhesPagamento(details);
     }
 
     public List<ServiceOrdersPaymentMethodEntity> prepararMeios(ServiceOrdersEntity ordem, PaymentRequest pagamento) {
