@@ -1,5 +1,12 @@
 package com.fasecerta.backend.modules.serviceOrders;
 
-public class ServiceOrdersRepository {
-    
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface ServiceOrdersRepository
+        extends JpaRepository<ServiceOrdersEntity, UUID> {
+
+    Optional<ServiceOrdersEntity> findByNumeroOs(Long numeroOs);
 }
