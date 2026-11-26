@@ -16,17 +16,22 @@ public interface ServiceOrdersRepository
 
     Optional<ServiceOrdersEntity> findByIdAndDeletedAtIsNull(UUID id);
 
+    String ACTIVE_SUMMARY_FILTERS = """
+            WHERE os.deleted_at IS NULL
+              AND (:orderNumber IS NULL OR os.numero_os = :orderNumber)
+              AND (:status IS NULL OR os.status = :status)
+            """;
+
     @NativeQuery(value = """
             SELECT os.id, os.numero_os, os.cliente_id,
                    CASE WHEN c.tipo_pessoa = 'PJ' THEN c.razao_social ELSE c.nome_completo END AS cliente_nome,
                    os.status, os.valor_total, os.created_at
             FROM ordens_servico os
             JOIN customer c ON c.id = os.cliente_id
-            WHERE os.deleted_at IS NULL
-            ORDER BY os.numero_os DESC
-            """, countQuery = "SELECT COUNT(*) FROM ordens_servico WHERE deleted_at IS NULL",
+            """ + ACTIVE_SUMMARY_FILTERS + "ORDER BY os.numero_os DESC",
+            countQuery = "SELECT COUNT(*) FROM ordens_servico os " + ACTIVE_SUMMARY_FILTERS,
             sqlResultSetMapping = "ServiceOrderSummary")
-    Page<ServiceOrdersDtos.ServiceOrderSummary> findActiveSummaries(Pageable pageable);
+    Page<ServiceOrdersDtos.ServiceOrderSummary> findActiveSummaries(Long orderNumber, String status, Pageable pageable);
 
     @Query(value = """
             SELECT CASE WHEN c.tipo_pessoa = 'PJ' THEN c.razao_social ELSE c.nome_completo END

@@ -119,16 +119,18 @@ public class ServiceOrdersService {
     }
 
     @Transactional(readOnly = true)
-    public ServiceOrderPage list(int page, int limit) {
+    public ServiceOrderPage list(int page, int limit, Long orderNumber, StatusOS status) {
         if (page < 1 || limit < 1 || limit > 100) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "page deve ser maior ou igual a 1 e limit deve estar entre 1 e 100");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1 e limit deve estar entre 1 e 100");
         }
         PageRequest pageable = PageRequest.of(page - 1, limit);
         if (pageable.getOffset() > Integer.MAX_VALUE) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Página fora do intervalo suportado");
         }
-        var orders = ordersRepository.findActiveSummaries(pageable);
+        if (orderNumber != null && orderNumber < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "numeroOs deve ser maior que zero");
+        }
+        var orders = ordersRepository.findActiveSummaries(orderNumber, status == null ? null : status.name(), pageable);
         return new ServiceOrderPage(orders.getContent(), orders.getTotalElements(), page, limit, orders.getTotalPages());
     }
 

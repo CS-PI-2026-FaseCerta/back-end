@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderPage;
+import com.fasecerta.backend.shared.enums.StatusOS;
 import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,9 +29,11 @@ public class ServiceOrdersController {
     }
 
     @GetMapping
-    public ServiceOrderPage list(@RequestParam(defaultValue = "1") int page,
-                                 @RequestParam(defaultValue = "20") int limit) {
-        return service.list(page, limit);
+    public ServiceOrderPage list(
+            @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(name = "numeroOs", required = false) Long orderNumber,
+            @RequestParam(required = false) StatusOS status) {
+        return service.list(page, limit, orderNumber, status);
     }
 
     @GetMapping("/{id}")

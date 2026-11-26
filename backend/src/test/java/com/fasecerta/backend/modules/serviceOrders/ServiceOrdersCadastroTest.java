@@ -10,6 +10,7 @@ import com.fasecerta.backend.shared.enums.DiscountType;
 import com.fasecerta.backend.shared.enums.PaymentCondition;
 import com.fasecerta.backend.shared.enums.PaymentMethod;
 import com.fasecerta.backend.shared.enums.PersonType;
+import com.fasecerta.backend.shared.enums.StatusOS;
 import com.fasecerta.backend.shared.enums.UserProfile;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -32,6 +33,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -154,11 +156,15 @@ class ServiceOrdersCadastroTest {
                 .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")));
     }
 
+    private MockHttpServletRequestBuilder listRequest() {
+        return get("/api/ordens-servico")
+                .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO"));
+    }
+
     private ResultActions listOrders(int page, int limit) throws Exception {
-        return mvc.perform(get("/api/ordens-servico")
+        return mvc.perform(listRequest()
                 .param("page", Integer.toString(page))
-                .param("limit", Integer.toString(limit))
-                .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")));
+                .param("limit", Integer.toString(limit)));
     }
 
     @Test
@@ -204,6 +210,66 @@ class ServiceOrdersCadastroTest {
     @CsvSource({"0, 20", "1, 0", "1, 101", "2147483647, 20"})
     void rejectsInvalidListPagination(int page, int limit) throws Exception {
         listOrders(page, limit).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void searchesByExactOrderNumberAndCombinesItWithStatus() throws Exception {
+        UUID id = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        var order = ordens.findById(id).orElseThrow();
+        String number = order.getNumeroOs().toString();
+        submit(validRequest()).andExpect(status().isCreated());
+
+        mvc.perform(listRequest().param("numeroOs", number).param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(id.toString()))
+                .andExpect(jsonPath("$.total").value(1));
+        mvc.perform(listRequest().param("numeroOs", number).param("status", "EM_ABERTO").param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(id.toString()))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
+        mvc.perform(listRequest().param("numeroOs", number).param("status", "PAGO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.total").value(0));
+
+        order.setDeletedAt(LocalDateTime.now());
+        ordens.saveAndFlush(order);
+        mvc.perform(listRequest().param("numeroOs", number))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
+    void paginatesOnlyActiveOrdersWithTheRequestedStatus() throws Exception {
+        UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID second = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID removed = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        var paidOrders = ordens.findAllById(java.util.List.of(first, second, removed));
+        for (var order : paidOrders) {
+            order.setStatus(StatusOS.PAGO);
+            if (order.getId().equals(removed)) {
+                order.setDeletedAt(LocalDateTime.now());
+            }
+        }
+        ordens.saveAllAndFlush(paidOrders);
+        submit(validRequest()).andExpect(status().isCreated());
+
+        mvc.perform(listRequest().param("status", "PAGO").param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(second.toString()))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+        mvc.perform(listRequest().param("status", "PAGO").param("limit", "1").param("page", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(first.toString()));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"status,INVALIDO", "numeroOs,abc", "numeroOs,0", "numeroOs,-1"})
+    void rejectsInvalidListFilters(String parameter, String value) throws Exception {
+        mvc.perform(listRequest().param(parameter, value)).andExpect(status().isBadRequest());
     }
 
     @Test
