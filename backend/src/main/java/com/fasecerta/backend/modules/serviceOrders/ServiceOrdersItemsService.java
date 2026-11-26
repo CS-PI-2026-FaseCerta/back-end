@@ -17,7 +17,7 @@ import java.util.List;
 @Service
 public class ServiceOrdersItemsService {
 
-    private static final BigDecimal MAX_QUANTIDADE = new BigDecimal("999999999999999.9999");
+    private static final BigDecimal MAX_QUANTIDADE = BigDecimal.valueOf(ServiceItemRequest.MAX_QUANTITY);
 
     private static final BigDecimal MAX_MONETARIO = new BigDecimal("99999999999999999.99");
 
@@ -67,12 +67,13 @@ public class ServiceOrdersItemsService {
                             : servico.getValorBase(),
                     "valorUnitario");
 
+            BigDecimal quantity = request.quantidade() == null ? null : BigDecimal.valueOf(request.quantidade());
             ServiceOrdersItemEntity item = new ServiceOrdersItemEntity();
             item.setOrdem(ordem);
             item.vincularServico(servico);
-            item.setQuantidade(request.quantidade());
+            item.setQuantidade(quantity);
             item.setValorUnitarioCobrado(preco);
-            item.setValorTotalItem(calcularTotalItem(request.quantidade(), preco));
+            item.setValorTotalItem(calcularTotalItem(quantity, preco));
             item.setObservacao(request.observacao());
             itens.add(item);
         }
@@ -104,9 +105,8 @@ public class ServiceOrdersItemsService {
             throw erro("quantidade deve ser maior que zero");
         }
 
-        if (quantidade.scale() > 4 || quantidade.compareTo(MAX_QUANTIDADE) > 0) {
-
-            throw erro("quantidade aceita até 15 inteiros e 4 casas decimais");
+        if (quantidade.stripTrailingZeros().scale() > 0 || quantidade.compareTo(MAX_QUANTIDADE) > 0) {
+            throw erro("quantidade deve ser um número inteiro de até 15 dígitos");
         }
     }
 

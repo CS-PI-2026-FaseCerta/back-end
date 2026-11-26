@@ -44,7 +44,7 @@ class ServiceOrdersItemsServiceTest {
 
         var itens = service.prepararItens(
                 new ServiceOrdersEntity(),
-                List.of(entrada(catalogo, "2", null)));
+                List.of(entrada(catalogo, 2, null)));
 
         assertEquals(
                 new BigDecimal("100.00"),
@@ -64,7 +64,7 @@ class ServiceOrdersItemsServiceTest {
 
         var itens = service.prepararItens(
                 new ServiceOrdersEntity(),
-                List.of(entrada(catalogo, "2", "0.00")));
+                List.of(entrada(catalogo, 2, "0.00")));
 
         assertEquals(
                 new BigDecimal("0.00"),
@@ -89,7 +89,7 @@ class ServiceOrdersItemsServiceTest {
                 ResponseStatusException.class,
                 () -> service.prepararItens(
                         new ServiceOrdersEntity(),
-                        List.of(entrada(catalogo, "1", null))));
+                        List.of(entrada(catalogo, 1, null))));
 
         assertEquals(
                 HttpStatus.NOT_FOUND,
@@ -112,20 +112,27 @@ class ServiceOrdersItemsServiceTest {
     }
 
     @Test
-    void subtotalSomaOsTotaisArredondadosDosItens() {
+    void rejectsFractionalQuantityInItemCalculation() {
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.calcularTotalItem(new BigDecimal("1.5"), new BigDecimal("10.01")));
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+    }
+
+    @Test
+    void sumsCentAmountsForWholeQuantities() {
         ServiceOrdersItemEntity primeiro = new ServiceOrdersItemEntity();
         ServiceOrdersItemEntity segundo = new ServiceOrdersItemEntity();
 
         primeiro.setValorTotalItem(service.calcularTotalItem(
-                new BigDecimal("0.5"),
+                new BigDecimal("2.0000"),
                 new BigDecimal("0.01")));
 
         segundo.setValorTotalItem(service.calcularTotalItem(
-                new BigDecimal("0.5"),
-                new BigDecimal("0.01")));
+                new BigDecimal("3"),
+                new BigDecimal("0.10")));
 
         assertEquals(
-                new BigDecimal("0.02"),
+                new BigDecimal("0.32"),
                 service.calcularSubtotal(List.of(primeiro, segundo)));
     }
 
@@ -138,7 +145,7 @@ class ServiceOrdersItemsServiceTest {
 
         var itens = service.prepararItens(
                 new ServiceOrdersEntity(),
-                List.of(entrada(catalogo, "2", null)));
+                List.of(entrada(catalogo, 2, null)));
 
         catalogo.setValorBase(new BigDecimal("500.00"));
 
@@ -162,12 +169,12 @@ class ServiceOrdersItemsServiceTest {
 
     private ServiceItemRequest entrada(
             ServicesEntity servico,
-            String quantidade,
+            long quantity,
             String preco) {
 
         return new ServiceItemRequest(
                 servico.getId(),
-                new BigDecimal(quantidade),
+                quantity,
                 preco == null ? null : new BigDecimal(preco),
                 null);
     }

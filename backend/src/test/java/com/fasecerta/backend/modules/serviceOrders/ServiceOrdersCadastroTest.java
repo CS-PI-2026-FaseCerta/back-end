@@ -321,7 +321,6 @@ class ServiceOrdersCadastroTest {
 
     @ParameterizedTest
     @CsvSource({
-            "/servicos/0, quantidade,    2.00001",
             "/servicos/0, valorUnitario, 350.001",
             "/desconto,   valor,         10.001",
             "/pagamento,  valorEntrada,  100.001"
@@ -332,18 +331,28 @@ class ServiceOrdersCadastroTest {
         assertRejected(request, HttpStatus.BAD_REQUEST);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"0.5", "2.1234", "2.0", "\"2\"", "0", "-1", "1000000000000000"})
+    void rejectsInvalidServiceQuantityWithoutSaving(String quantity) throws Exception {
+        ObjectNode request = validRequest();
+        ((ObjectNode) request.at("/servicos/0")).set("quantidade", jsonMapper.readTree(quantity));
+        assertRejected(request, HttpStatus.BAD_REQUEST);
+    }
+
     @Test
-    void acceptsFourDecimalPlacesForQuantityAndTwoForUnitPrice() throws Exception {
+    void multipliesWholeQuantityByUnitPriceInCents() throws Exception {
         ObjectNode request = validRequest();
         ((ObjectNode) request.at("/servicos/0"))
-                .put("quantidade", new BigDecimal("2.1234"))
+                .put("quantidade", 3)
                 .put("valorUnitario", new BigDecimal("10.01"));
 
         submit(request)
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.servicos[0].quantidade").value(2.1234))
+                .andExpect(jsonPath("$.servicos[0].quantidade").value(3))
                 .andExpect(jsonPath("$.servicos[0].valorUnitarioCobrado").value(10.01))
-                .andExpect(jsonPath("$.valorTotal").value(21.26));
+                .andExpect(jsonPath("$.servicos[0].valorTotalItem").value(30.03))
+                .andExpect(jsonPath("$.valorSubtotal").value(30.03))
+                .andExpect(jsonPath("$.valorTotal").value(30.03));
     }
 
     @ParameterizedTest

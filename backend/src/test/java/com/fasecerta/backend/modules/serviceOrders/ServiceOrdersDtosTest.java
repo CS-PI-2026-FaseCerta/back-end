@@ -32,7 +32,7 @@ class ServiceOrdersDtosTest {
 
     @Test
     void acceptsRequestWithoutDiscountAndPayment() {
-        var item = item(new BigDecimal("1.5"), null);
+        var item = item(1L, null);
         var request = request(List.of(item));
 
         assertTrue(VALIDATOR.validate(request).isEmpty());
@@ -53,15 +53,21 @@ class ServiceOrdersDtosTest {
 
     @Test
     void rejectsZeroQuantity() {
-        var request = request(List.of(item(BigDecimal.ZERO, null)));
+        var request = request(List.of(item(0L, null)));
 
         assertFalse(VALIDATOR.validate(request).isEmpty());
     }
 
     @Test
+    void acceptsAtMostFifteenQuantityDigits() {
+        assertTrue(VALIDATOR.validate(request(List.of(item(999_999_999_999_999L, null)))).isEmpty());
+        assertFalse(VALIDATOR.validate(request(List.of(item(1_000_000_000_000_000L, null)))).isEmpty());
+    }
+
+    @Test
     void rejectsNegativeNegotiatedPrice() {
         var request = request(List.of(
-                item(BigDecimal.ONE, new BigDecimal("-0.01"))));
+                item(1L, new BigDecimal("-0.01"))));
 
         assertFalse(VALIDATOR.validate(request).isEmpty());
     }
@@ -75,7 +81,7 @@ class ServiceOrdersDtosTest {
     }
 
     private ServiceItemRequest item(
-            BigDecimal quantity,
+            long quantity,
             BigDecimal negotiatedPrice) {
 
         return new ServiceItemRequest(

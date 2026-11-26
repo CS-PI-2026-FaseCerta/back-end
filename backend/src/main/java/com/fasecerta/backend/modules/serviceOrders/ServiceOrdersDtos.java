@@ -8,6 +8,7 @@ import com.fasecerta.backend.shared.enums.StatusOS;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -48,14 +49,17 @@ public final class ServiceOrdersDtos {
             UUID servicoId,
 
             @NotNull(message = "quantidade é obrigatória")
-            @DecimalMin(value = "0", inclusive = false, message = "quantidade deve ser maior que zero")
-            BigDecimal quantidade,
+            @Positive(message = "quantidade deve ser maior que zero")
+            @Max(value = ServiceItemRequest.MAX_QUANTITY, message = "quantidade aceita até 15 dígitos")
+            @JsonDeserialize(using = ServiceQuantityDeserializer.class)
+            Long quantidade,
 
             @DecimalMin(value = "0", message = "valorUnitario não pode ser negativo")
             @Digits(integer = 17, fraction = 2, message = "valorUnitario deve possuir no máximo duas casas decimais")
             BigDecimal valorUnitario,
 
             String observacao) {
+            static final long MAX_QUANTITY = 999_999_999_999_999L;
         }
 
         public record DiscountRequest(
@@ -124,6 +128,16 @@ public final class ServiceOrdersDtos {
                 String descricaoParcelamento,
                 String detalhes,
                 List<PaymentMethod> meios) {
+        }
+
+        public static final class ServiceQuantityDeserializer extends ValueDeserializer<Long> {
+                @Override
+                public Long deserialize(JsonParser parser, DeserializationContext context) {
+                        if (!parser.hasToken(JsonToken.VALUE_NUMBER_INT)) {
+                                return context.reportInputMismatch(Long.class, "quantidade deve ser um número inteiro");
+                        }
+                        return parser.getLongValue();
+                }
         }
 
         public static final class ParcelasInteiras extends ValueDeserializer<Integer> {
