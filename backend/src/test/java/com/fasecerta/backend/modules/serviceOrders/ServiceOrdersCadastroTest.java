@@ -187,6 +187,28 @@ class ServiceOrdersCadastroTest {
     }
 
     @Test
+    void readsActiveOrderAfterCustomerAndServiceAreSoftDeleted() throws Exception {
+        var customer = customers.findById(clienteId).orElseThrow();
+        customer.setTipoPessoa(PersonType.PJ);
+        customer.setRazaoSocial("Empresa de teste");
+        customers.saveAndFlush(customer);
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+
+        catalogo.deleteById(servicoId);
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.servicos[0].servicoId").value(servicoId.toString()));
+
+        customers.deleteById(clienteId);
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.clienteId").value(clienteId.toString()))
+                .andExpect(jsonPath("$.clienteNome").value("Empresa de teste"))
+                .andExpect(jsonPath("$.servicos[0].servicoId").value(servicoId.toString()))
+                .andExpect(jsonPath("$.servicos[0].valorUnitarioCobrado").value(350.0))
+                .andExpect(jsonPath("$.valorSubtotal").value(700.0))
+                .andExpect(jsonPath("$.valorTotal").value(630.0));
+    }
+
+    @Test
     void rejectsUnauthenticatedDetailRequest() throws Exception {
         mvc.perform(get("/api/ordens-servico/{id}", UUID.randomUUID()))
                 .andExpect(status().isUnauthorized());
