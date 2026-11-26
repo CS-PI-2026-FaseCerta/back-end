@@ -16,6 +16,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,13 +35,16 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -181,9 +185,7 @@ class ServiceOrdersCadastroTest {
         UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
         UUID last = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
         UUID deleted = lerId(submit(validRequest()).andExpect(status().isCreated()));
-        var removed = ordens.findById(deleted).orElseThrow();
-        removed.setDeletedAt(LocalDateTime.now());
-        ordens.saveAndFlush(removed);
+        ordens.deleteById(deleted);
         customers.deleteById(clienteId);
 
         int total = initialTotal + 2;
@@ -234,8 +236,7 @@ class ServiceOrdersCadastroTest {
                 .andExpect(jsonPath("$.items").isEmpty())
                 .andExpect(jsonPath("$.total").value(0));
 
-        order.setDeletedAt(LocalDateTime.now());
-        ordens.saveAndFlush(order);
+        ordens.deleteById(id);
         mvc.perform(listRequest().param("numeroOs", number))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items").isEmpty())
@@ -247,14 +248,12 @@ class ServiceOrdersCadastroTest {
         UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
         UUID second = lerId(submit(validRequest()).andExpect(status().isCreated()));
         UUID removed = lerId(submit(validRequest()).andExpect(status().isCreated()));
-        var paidOrders = ordens.findAllById(java.util.List.of(first, second, removed));
+        var paidOrders = ordens.findAllById(List.of(first, second, removed));
         for (var order : paidOrders) {
             order.setStatus(StatusOS.PAGO);
-            if (order.getId().equals(removed)) {
-                order.setDeletedAt(LocalDateTime.now());
-            }
         }
         ordens.saveAllAndFlush(paidOrders);
+        ordens.deleteById(removed);
         submit(validRequest()).andExpect(status().isCreated());
 
         mvc.perform(listRequest().param("status", "PAGO").param("limit", "1"))
@@ -368,11 +367,43 @@ class ServiceOrdersCadastroTest {
     @Test
     void returnsNotFoundForUnknownOrDeletedOrder() throws Exception {
         getOrder(UUID.randomUUID()).andExpect(status().isNotFound());
-        UUID id = lerId(submit(validRequest()).andExpect(status().isCreated()));
-        var order = ordens.findById(id).orElseThrow();
-        order.setDeletedAt(LocalDateTime.now());
-        ordens.saveAndFlush(order);
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+        ordens.deleteById(id);
+
+        assertOrderMarkedAsDeleted(id);
+        assertEquals(1L, entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM os_servicos WHERE os_id = :id", Long.class)
+                .setParameter("id", id).getSingleResult());
+        assertEquals(2L, entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM os_meios_pagamento WHERE os_id = :id", Long.class)
+                .setParameter("id", id).getSingleResult());
         getOrder(id).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Transactional
+    void batchDeletionsRetainOrdersAndRespectTheSelectedIds() throws Exception {
+        UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID second = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID third = lerId(submit(validRequest()).andExpect(status().isCreated()));
+
+        ordens.deleteAllByIdInBatch(List.of(first)::iterator);
+        assertOrderMarkedAsDeleted(first);
+        var secondOrder = ordens.findById(second).orElseThrow();
+
+        ordens.deleteAllInBatch(List.of(secondOrder)::iterator);
+        assertOrderMarkedAsDeleted(second);
+        assertTrue(ordens.findById(third).isPresent());
+
+        ordens.deleteAllInBatch();
+        assertOrderMarkedAsDeleted(third);
+    }
+
+    private void assertOrderMarkedAsDeleted(UUID id) {
+        assertNotNull(entityManager.createNativeQuery(
+                "SELECT deleted_at FROM ordens_servico WHERE id = :id", LocalDateTime.class)
+                .setParameter("id", id).getSingleResult());
+        assertTrue(ordens.findById(id).isEmpty());
     }
 
     private Counts persistedCounts() {

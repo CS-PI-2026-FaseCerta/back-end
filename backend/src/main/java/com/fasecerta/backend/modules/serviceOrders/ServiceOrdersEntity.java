@@ -27,6 +27,8 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -45,6 +47,8 @@ import java.util.UUID;
                 @ColumnResult(name = "created_at", type = LocalDateTime.class)
         }))
 @Table(name = "ordens_servico", uniqueConstraints = @UniqueConstraint(name = "uk_os_numero", columnNames = "numero_os"))
+@SQLDelete(sql = "UPDATE ordens_servico SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor

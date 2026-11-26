@@ -1,11 +1,15 @@
 package com.fasecerta.backend.modules.serviceOrders;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.NativeQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.util.Streamable;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,6 +19,31 @@ public interface ServiceOrdersRepository
     Optional<ServiceOrdersEntity> findByNumeroOs(Long numeroOs);
 
     Optional<ServiceOrdersEntity> findByIdAndDeletedAtIsNull(UUID id);
+
+    // Bulk operations bypass the entity's @SQLDelete.
+    String MARK_ACTIVE_ORDERS_AS_DELETED =
+            "UPDATE ServiceOrdersEntity os SET os.deletedAt = LOCAL DATETIME WHERE os.deletedAt IS NULL";
+
+    @Override
+    default void deleteAllByIdInBatch(Iterable<UUID> ids) {
+        markDeletedByIds(Streamable.of(ids).toList());
+    }
+
+    @Override
+    default void deleteAllInBatch(Iterable<ServiceOrdersEntity> orders) {
+        markDeletedByIds(Streamable.of(orders).map(ServiceOrdersEntity::getId).toList());
+    }
+
+    @Transactional
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(MARK_ACTIVE_ORDERS_AS_DELETED + " AND os.id IN :ids")
+    void markDeletedByIds(List<UUID> ids);
+
+    @Override
+    @Transactional
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(MARK_ACTIVE_ORDERS_AS_DELETED)
+    void deleteAllInBatch();
 
     String ACTIVE_SUMMARY_FILTERS = """
             WHERE os.deleted_at IS NULL
