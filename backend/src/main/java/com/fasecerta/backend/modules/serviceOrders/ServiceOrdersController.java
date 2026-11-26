@@ -5,6 +5,8 @@ import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrde
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderDetailResponse;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderPage;
 import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,12 @@ public class ServiceOrdersController {
 
     public ServiceOrdersController(ServiceOrdersService service) {
         this.service = service;
+    }
+
+    @GetMapping
+    public ServiceOrderPage list(@RequestParam(defaultValue = "1") int page,
+                                 @RequestParam(defaultValue = "20") int limit) {
+        return service.list(page, limit);
     }
 
     @GetMapping("/{id}")

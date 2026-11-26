@@ -108,6 +108,15 @@ public final class ServiceOrdersDtos {
                 LocalDateTime createdAt) {
         }
 
+        public record ServiceOrderSummary(
+                UUID id, Long numeroOs, UUID clienteId, String clienteNome,
+                String status, BigDecimal valorTotal, LocalDateTime createdAt) {
+        }
+
+        public record ServiceOrderPage(
+                List<ServiceOrderSummary> items, long total, int page, int limit, int totalPages) {
+        }
+
         public record ServiceOrderDetailResponse(
                 @JsonUnwrapped ServiceOrderResponse order,
                 String clienteNome,

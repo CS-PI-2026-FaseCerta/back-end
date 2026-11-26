@@ -6,6 +6,9 @@ import com.fasecerta.backend.shared.enums.PaymentCondition;
 import com.fasecerta.backend.shared.enums.StatusOS;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.ColumnResult;
+import jakarta.persistence.ConstructorResult;
+import jakarta.persistence.SqlResultSetMapping;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -30,6 +33,17 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
+@SqlResultSetMapping(name = "ServiceOrderSummary", classes = @ConstructorResult(
+        targetClass = ServiceOrdersDtos.ServiceOrderSummary.class,
+        columns = {
+                @ColumnResult(name = "id", type = UUID.class),
+                @ColumnResult(name = "numero_os", type = Long.class),
+                @ColumnResult(name = "cliente_id", type = UUID.class),
+                @ColumnResult(name = "cliente_nome", type = String.class),
+                @ColumnResult(name = "status", type = String.class),
+                @ColumnResult(name = "valor_total", type = BigDecimal.class),
+                @ColumnResult(name = "created_at", type = LocalDateTime.class)
+        }))
 @Table(name = "ordens_servico", uniqueConstraints = @UniqueConstraint(name = "uk_os_numero", columnNames = "numero_os"))
 @Getter
 @Setter

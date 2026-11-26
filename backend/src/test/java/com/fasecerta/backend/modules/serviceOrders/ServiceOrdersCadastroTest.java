@@ -154,6 +154,63 @@ class ServiceOrdersCadastroTest {
                 .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")));
     }
 
+    private ResultActions listOrders(int page, int limit) throws Exception {
+        return mvc.perform(get("/api/ordens-servico")
+                .param("page", Integer.toString(page))
+                .param("limit", Integer.toString(limit))
+                .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")));
+    }
+
+    @Test
+    void listsActiveOrderSummariesAcrossPagesAfterCustomerDeletion() throws Exception {
+        var initial = mvc.perform(get("/api/ordens-servico")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.limit").value(20))
+                .andReturn().getResponse();
+        int initialTotal = jsonMapper.readTree(initial.getContentAsString()).path("total").asInt();
+
+        UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID last = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+        UUID deleted = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        var removed = ordens.findById(deleted).orElseThrow();
+        removed.setDeletedAt(LocalDateTime.now());
+        ordens.saveAndFlush(removed);
+        customers.deleteById(clienteId);
+
+        int total = initialTotal + 2;
+        listOrders(1, 1).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(last.toString()))
+                .andExpect(jsonPath("$.items[0].numeroOs").isNumber())
+                .andExpect(jsonPath("$.items[0].clienteId").value(clienteId.toString()))
+                .andExpect(jsonPath("$.items[0].clienteNome").value("Cliente de teste"))
+                .andExpect(jsonPath("$.items[0].status").value("EM_ABERTO"))
+                .andExpect(jsonPath("$.items[0].valorTotal").value(630.0))
+                .andExpect(jsonPath("$.items[0].createdAt").exists())
+                .andExpect(jsonPath("$.items[0].servicos").doesNotExist())
+                .andExpect(jsonPath("$.total").value(total))
+                .andExpect(jsonPath("$.totalPages").value(total));
+        listOrders(2, 1).andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.items[0].id").value(first.toString()));
+        listOrders(total + 1, 1).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.total").value(total));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0, 20", "1, 0", "1, 101", "2147483647, 20"})
+    void rejectsInvalidListPagination(int page, int limit) throws Exception {
+        listOrders(page, limit).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectsUnauthenticatedListRequest() throws Exception {
+        mvc.perform(get("/api/ordens-servico")).andExpect(status().isUnauthorized());
+    }
+
     @Test
     void readsRecordedOrderAfterCatalogPriceChanges() throws Exception {
         ObjectNode request = requestWithDiscountAndPayment();

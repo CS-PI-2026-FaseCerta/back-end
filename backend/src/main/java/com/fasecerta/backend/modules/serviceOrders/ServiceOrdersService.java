@@ -5,6 +5,8 @@ import com.fasecerta.backend.modules.customer.CustomerEntity;
 import com.fasecerta.backend.modules.customer.CustomerRepository;
 import com.fasecerta.backend.shared.enums.StatusOS;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderDetailResponse;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderPage;
+import org.springframework.data.domain.PageRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -114,6 +116,20 @@ public class ServiceOrdersService {
                 ordem.getValorTotal(),
                 pagamento,
                 ordem.getCreatedAt());
+    }
+
+    @Transactional(readOnly = true)
+    public ServiceOrderPage list(int page, int limit) {
+        if (page < 1 || limit < 1 || limit > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "page deve ser maior ou igual a 1 e limit deve estar entre 1 e 100");
+        }
+        PageRequest pageable = PageRequest.of(page - 1, limit);
+        if (pageable.getOffset() > Integer.MAX_VALUE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Página fora do intervalo suportado");
+        }
+        var orders = ordersRepository.findActiveSummaries(pageable);
+        return new ServiceOrderPage(orders.getContent(), orders.getTotalElements(), page, limit, orders.getTotalPages());
     }
 
     @Transactional(readOnly = true)
