@@ -20,6 +20,7 @@ import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.PaymentResp
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.CreateServiceOrderRequest;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import java.util.UUID;
@@ -144,6 +145,23 @@ public class ServiceOrdersService {
 
         return new ServiceOrderDetailResponse(montarResposta(order, items, methods), customerName,
                 order.getCreatedBy(), order.getUpdatedBy(), order.getUpdatedAt());
+    }
+
+    @Transactional
+    public void remover(UUID id, Authentication authentication) {
+        UUID usuarioId = obterUsuarioAutenticado(authentication);
+
+        var ordem = ordersRepository.findActiveByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+
+        if (ordem.getStatus() != StatusOS.EM_ABERTO && ordem.getStatus() != StatusOS.NAO_APROVADO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ordem de serviço não pode ser removida no estado atual");
+        }
+
+        // A entidade está gerenciada: o UPDATE ocorre na transação, com updated_at via @PreUpdate.
+        // Nenhuma operação de remoção é executada sobre a OS ou sua composição.
+        ordem.setDeletedAt(LocalDateTime.now());
+        ordem.setUpdatedBy(usuarioId);
     }
 
     @Transactional
