@@ -167,6 +167,21 @@ public class ServiceOrdersService {
     }
 
     @Transactional
+    public void remover(UUID id, Authentication authentication) {
+        UUID usuarioId = obterUsuarioAutenticado(authentication);
+
+        var ordem = ordersRepository.findActiveByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+
+        if (ordem.getStatus() != StatusOS.EM_ABERTO && ordem.getStatus() != StatusOS.NAO_APROVADO) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ordem de serviço não pode ser removida no estado atual");
+        }
+
+        ordem.setDeletedAt(LocalDateTime.now());
+        ordem.setUpdatedBy(usuarioId);
+    }
+
+    @Transactional
     public ServiceOrderDetailResponse substituirMeios(
             UUID id, List<PaymentMethod> novosMeios, Authentication authentication) {
         UUID usuarioId = obterUsuarioAutenticado(authentication);
