@@ -1,3 +1,4 @@
+
 package com.fasecerta.backend.modules.serviceOrders;
 
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemRequest;
@@ -13,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ServiceOrdersItemsService {
@@ -45,6 +47,7 @@ public class ServiceOrdersItemsService {
         if (ordem == null) {
             throw new IllegalArgumentException("OS é obrigatória");
         }
+
         if (requests == null || requests.isEmpty()) {
             throw erro("A OS deve possuir pelo menos um serviço");
         }
@@ -56,29 +59,60 @@ public class ServiceOrdersItemsService {
                 throw erro("Cada item deve informar servicoId");
             }
 
-            ServicesEntity servico = servicesRepository
-                    .findByIdAndDeletedAtIsNull(request.servicoId())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, "Serviço não encontrado ou removido"));
+            ServiceOrdersItemEntity item = prepararItem(
+                    ordem,
+                    request.servicoId(),
+                    request.quantidade(),
+                    request.valorUnitario(),
+                    request.observacao());
 
-            BigDecimal preco = validarMonetario(
-                    request.valorUnitario() != null
-                            ? request.valorUnitario()
-                            : servico.getValorBase(),
-                    "valorUnitario");
-
-            BigDecimal quantity = request.quantidade() == null ? null : BigDecimal.valueOf(request.quantidade());
-            ServiceOrdersItemEntity item = new ServiceOrdersItemEntity();
-            item.setOrdem(ordem);
-            item.vincularServico(servico);
-            item.setQuantidade(quantity);
-            item.setValorUnitarioCobrado(preco);
-            item.setValorTotalItem(calcularTotalItem(quantity, preco));
-            item.setObservacao(request.observacao());
             itens.add(item);
         }
 
         return List.copyOf(itens);
+    }
+
+    public ServiceOrdersItemEntity prepararItem(
+            ServiceOrdersEntity ordem,
+            UUID servicoId,
+            Long quantidade,
+            BigDecimal valorUnitario,
+            String observacao) {
+
+        if (ordem == null) {
+            throw new IllegalArgumentException("OS é obrigatória");
+        }
+
+        if (servicoId == null) {
+            throw erro("O serviço é obrigatório");
+        }
+
+        ServicesEntity servico = servicesRepository
+                .findByIdAndDeletedAtIsNull(servicoId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Serviço não encontrado ou removido"));
+
+        BigDecimal preco = validarMonetario(
+                valorUnitario != null
+                        ? valorUnitario
+                        : servico.getValorBase(),
+                "valorUnitario");
+
+        BigDecimal quantidadeDecimal = quantidade == null
+                ? null
+                : BigDecimal.valueOf(quantidade);
+
+        ServiceOrdersItemEntity item = new ServiceOrdersItemEntity();
+
+        item.setOrdem(ordem);
+        item.vincularServico(servico);
+        item.setQuantidade(quantidadeDecimal);
+        item.setValorUnitarioCobrado(preco);
+        item.setValorTotalItem(calcularTotalItem(quantidadeDecimal, preco));
+        item.setObservacao(observacao);
+
+        return item;
     }
 
     public BigDecimal calcularSubtotal(List<ServiceOrdersItemEntity> itens) {
