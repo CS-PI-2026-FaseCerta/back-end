@@ -4,6 +4,7 @@ import com.fasecerta.backend.exceptions.UnauthenticatedException;
 import com.fasecerta.backend.modules.customer.CustomerEntity;
 import com.fasecerta.backend.modules.customer.CustomerRepository;
 import com.fasecerta.backend.shared.enums.StatusOS;
+import com.fasecerta.backend.shared.enums.PaymentMethod;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderDetailResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderPage;
 import org.springframework.data.domain.PageRequest;
@@ -138,12 +139,34 @@ public class ServiceOrdersService {
     public ServiceOrderDetailResponse findById(UUID id) {
         var order = ordersRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+        return montarDetalhe(order);
+    }
+
+    private ServiceOrderDetailResponse montarDetalhe(ServiceOrdersEntity order) {
+        UUID id = order.getId();
         var items = itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(id);
         var methods = paymentMethodRepository.findAllByOrdem_Id(id);
         String customerName = ordersRepository.findHistoricalCustomerName(id);
 
         return new ServiceOrderDetailResponse(montarResposta(order, items, methods), customerName,
                 order.getCreatedBy(), order.getUpdatedBy(), order.getUpdatedAt());
+    }
+
+    @Transactional
+    public ServiceOrderDetailResponse substituirMeios(
+            UUID id, List<PaymentMethod> novosMeios, Authentication authentication) {
+        UUID usuarioId = obterUsuarioAutenticado(authentication);
+        ServiceOrdersEntity ordem = ordersRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+        if (novosMeios == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe os meios de pagamento");
+        }
+
+        var meios = paymentsService.prepararMeios(ordem, novosMeios);
+        ordem.setUpdatedBy(usuarioId);
+        paymentMethodRepository.deleteByOrdemId(id);
+        paymentMethodRepository.saveAllAndFlush(meios);
+        return montarDetalhe(ordem);
     }
 
     @Transactional

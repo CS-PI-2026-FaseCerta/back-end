@@ -8,4 +8,7 @@ public enum PaymentMethod {
     BOLETO,
     TRANSFERENCIA,
     CHEQUE
+
 }
+
+
