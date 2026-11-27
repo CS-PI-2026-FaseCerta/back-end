@@ -1,4 +1,3 @@
-
 package com.fasecerta.backend.modules.serviceOrders.items;
 
 import com.fasecerta.backend.modules.customer.CustomerEntity;
@@ -6,6 +5,8 @@ import com.fasecerta.backend.modules.customer.CustomerRepository;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersEntity;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersNumberService;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersRepository;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemEntity;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemRepository;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.AddServiceOrderItemRequest;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.ServiceOrderItemResponse;
 import com.fasecerta.backend.modules.services.ServicesEntity;
@@ -40,7 +41,7 @@ class ServiceOrderItemIntegrationTest {
         private ServiceOrderItemService itemService;
 
         @Autowired
-        private ServiceOrderItemRepository itemRepository;
+        private ServiceOrdersItemRepository itemRepository;
 
         @Autowired
         private ServiceOrdersRepository ordemServicoRepository;
@@ -110,13 +111,14 @@ class ServiceOrderItemIntegrationTest {
                 entityManager.flush();
                 entityManager.clear();
 
-                ServiceOrderItemEntity itemSalvo = itemRepository.findById(response.id())
+                ServiceOrdersItemEntity itemSalvo = itemRepository.findById(response.id())
                                 .orElseThrow();
 
                 assertNotNull(itemSalvo.getId());
-                assertEquals(ordemServico.getId(), itemSalvo.getOrdemServico().getId());
+                assertEquals(ordemServico.getId(), itemSalvo.getOrdem().getId());
                 assertEquals(servico.getId(), itemSalvo.getServico().getId());
-                assertEquals(2, itemSalvo.getQuantidade());
+                assertEquals(0, new BigDecimal("2")
+                                .compareTo(itemSalvo.getQuantidade()));
 
                 assertEquals(
                                 0,
@@ -151,7 +153,7 @@ class ServiceOrderItemIntegrationTest {
                 entityManager.flush();
                 entityManager.clear();
 
-                ServiceOrderItemEntity itemSalvo = itemRepository.findById(response.id())
+                ServiceOrdersItemEntity itemSalvo = itemRepository.findById(response.id())
                                 .orElseThrow();
 
                 ServicesEntity servicoAtualizado = servicesRepository.findById(servico.getId())
@@ -199,8 +201,8 @@ class ServiceOrderItemIntegrationTest {
                                 0,
                                 new BigDecimal("350.00").compareTo(subtotal));
 
-                List<ServiceOrderItemEntity> itens = itemRepository
-                                .findAllByOrdemServico_Id(ordemServico.getId());
+                List<ServiceOrdersItemEntity> itens = itemRepository
+                                .findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServico.getId());
 
                 assertEquals(2, itens.size());
         }

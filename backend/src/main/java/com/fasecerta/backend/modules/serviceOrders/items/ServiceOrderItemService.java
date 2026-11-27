@@ -1,12 +1,12 @@
-
 package com.fasecerta.backend.modules.serviceOrders.items;
 
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersEntity;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemEntity;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemRepository;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemsService;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersRepository;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.AddServiceOrderItemRequest;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.ServiceOrderItemResponse;
-import com.fasecerta.backend.modules.services.ServicesEntity;
-import com.fasecerta.backend.modules.services.ServicesRepository;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,61 +21,38 @@ import java.util.UUID;
 @Service
 public class ServiceOrderItemService {
 
-        private static final int MAX_OBSERVACAO_LENGTH = 5000;
-        private static final int MAX_VALOR_INTEGER_DIGITS = 17;
-
-        private final ServiceOrderItemRepository itemRepository;
+        private final ServiceOrdersItemRepository itemRepository;
         private final ServiceOrdersRepository ordemServicoRepository;
-        private final ServicesRepository servicesRepository;
+        private final ServiceOrdersItemsService itemsService;
 
         public ServiceOrderItemService(
-                        ServiceOrderItemRepository itemRepository,
+                        ServiceOrdersItemRepository itemRepository,
                         ServiceOrdersRepository ordemServicoRepository,
-                        ServicesRepository servicesRepository) {
+                        ServiceOrdersItemsService itemsService) {
                 this.itemRepository = itemRepository;
                 this.ordemServicoRepository = ordemServicoRepository;
-                this.servicesRepository = servicesRepository;
+                this.itemsService = itemsService;
         }
 
         @Transactional
         public ServiceOrderItemResponse addItem(
                         UUID ordemServicoId,
                         AddServiceOrderItemRequest request) {
-                validarRequisicao(ordemServicoId, request);
 
-                validarQuantidade(request.quantidade());
-                validarValorNegociado(request.valorUnitarioCobrado());
-                validarObservacao(request.observacao());
+                validarRequisicao(ordemServicoId, request);
 
                 ServiceOrdersEntity ordemServico = buscarOrdemServico(ordemServicoId);
 
-                ServicesEntity servico = servicesRepository
-                                .findByIdAndDeletedAtIsNull(request.servicoId())
-                                .orElseThrow(() -> new ResponseStatusException(
-                                                HttpStatus.NOT_FOUND,
-                                                "Serviço não encontrado ou indisponível"));
+                ServiceOrdersItemEntity item = itemsService.prepararItem(
+                                ordemServico,
+                                request.servicoId(),
+                                request.quantidade() == null
+                                                ? null
+                                                : request.quantidade().longValue(),
+                                request.valorUnitarioCobrado(),
+                                request.observacao());
 
-                BigDecimal valorUnitario = request.valorUnitarioCobrado() != null
-                                ? request.valorUnitarioCobrado()
-                                : servico.getValorBase();
-
-                valorUnitario = validarValorMonetario(
-                                valorUnitario,
-                                "O serviço não possui um valor base válido");
-
-                BigDecimal valorTotal = valorUnitario
-                                .multiply(BigDecimal.valueOf(request.quantidade()))
-                                .setScale(2, RoundingMode.HALF_UP);
-
-                ServiceOrderItemEntity item = new ServiceOrderItemEntity();
-                item.setOrdemServico(ordemServico);
-                item.setServico(servico);
-                item.setQuantidade(request.quantidade());
-                item.setValorUnitarioCobrado(valorUnitario);
-                item.setValorTotalItem(valorTotal);
-                item.setObservacao(normalizarObservacao(request.observacao()));
-
-                ServiceOrderItemEntity savedItem = itemRepository.save(item);
+                ServiceOrdersItemEntity savedItem = itemRepository.save(item);
 
                 return toResponse(savedItem);
         }
@@ -84,7 +61,8 @@ public class ServiceOrderItemService {
         public List<ServiceOrderItemResponse> listItems(UUID ordemServicoId) {
                 buscarOrdemServico(ordemServicoId);
 
-                return itemRepository.findAllByOrdemServico_Id(ordemServicoId)
+                return itemRepository
+                                .findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId)
                                 .stream()
                                 .map(this::toResponse)
                                 .toList();
@@ -94,16 +72,20 @@ public class ServiceOrderItemService {
         public BigDecimal calculateSubtotal(UUID ordemServicoId) {
                 buscarOrdemServico(ordemServicoId);
 
-                BigDecimal subtotal = itemRepository.calcularSubtotal(ordemServicoId);
+                List<ServiceOrdersItemEntity> itens = itemRepository
+                                .findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId);
 
-                return subtotal == null
-                                ? BigDecimal.ZERO.setScale(2)
-                                : subtotal.setScale(2, RoundingMode.HALF_UP);
+                BigDecimal subtotal = itens.stream()
+                                .map(ServiceOrdersItemEntity::getValorTotalItem)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                return subtotal.setScale(2, RoundingMode.HALF_UP);
         }
 
         private void validarRequisicao(
                         UUID ordemServicoId,
                         AddServiceOrderItemRequest request) {
+
                 if (ordemServicoId == null) {
                         throw new ResponseStatusException(
                                         HttpStatus.BAD_REQUEST,
@@ -123,73 +105,6 @@ public class ServiceOrderItemService {
                 }
         }
 
-        private void validarQuantidade(Integer quantidade) {
-                if (quantidade == null || quantidade <= 0) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "A quantidade deve ser maior que zero");
-                }
-        }
-
-        private void validarValorNegociado(BigDecimal valor) {
-                if (valor == null) {
-                        return;
-                }
-
-                if (valor.signum() < 0) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "O valor unitário não pode ser negativo");
-                }
-
-                validarValorMonetario(
-                                valor,
-                                "O valor unitário informado é inválido");
-        }
-
-        private BigDecimal validarValorMonetario(
-                        BigDecimal valor,
-                        String mensagemErro) {
-                if (valor == null || valor.signum() < 0) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.BAD_REQUEST,
-                                        mensagemErro);
-                }
-
-                BigDecimal valorNormalizado = valor.stripTrailingZeros();
-
-                int casasDecimais = Math.max(valorNormalizado.scale(), 0);
-                int digitosInteiros = Math.max(
-                                valorNormalizado.precision() - valorNormalizado.scale(),
-                                0);
-
-                if (casasDecimais > 2
-                                || digitosInteiros > MAX_VALOR_INTEGER_DIGITS) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.BAD_REQUEST,
-                                        mensagemErro);
-                }
-
-                return valor.setScale(2, RoundingMode.UNNECESSARY);
-        }
-
-        private void validarObservacao(String observacao) {
-                if (observacao != null
-                                && observacao.length() > MAX_OBSERVACAO_LENGTH) {
-                        throw new ResponseStatusException(
-                                        HttpStatus.BAD_REQUEST,
-                                        "A observação deve ter no máximo 5000 caracteres");
-                }
-        }
-
-        private String normalizarObservacao(String observacao) {
-                if (observacao == null || observacao.isBlank()) {
-                        return null;
-                }
-
-                return observacao.trim();
-        }
-
         private ServiceOrdersEntity buscarOrdemServico(UUID ordemServicoId) {
                 return ordemServicoRepository.findById(ordemServicoId)
                                 .orElseThrow(() -> new ResponseStatusException(
@@ -197,11 +112,11 @@ public class ServiceOrderItemService {
                                                 "Ordem de serviço não encontrada"));
         }
 
-        private ServiceOrderItemResponse toResponse(ServiceOrderItemEntity item) {
+        private ServiceOrderItemResponse toResponse(ServiceOrdersItemEntity item) {
                 return new ServiceOrderItemResponse(
                                 item.getId(),
-                                item.getServico().getId(),
-                                item.getQuantidade(),
+                                item.getServicoId(),
+                                item.getQuantidade().longValueExact(),
                                 item.getValorUnitarioCobrado(),
                                 item.getValorTotalItem(),
                                 item.getObservacao(),

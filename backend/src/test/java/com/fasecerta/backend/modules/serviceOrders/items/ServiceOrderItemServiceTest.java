@@ -1,6 +1,9 @@
 package com.fasecerta.backend.modules.serviceOrders.items;
 
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersEntity;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemEntity;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemRepository;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemsService;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersRepository;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.AddServiceOrderItemRequest;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.ServiceOrderItemResponse;
@@ -12,13 +15,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,475 +33,522 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ServiceOrderItemServiceTest {
 
-    @Mock
-    private ServiceOrderItemRepository itemRepository;
+        @Mock
+        private ServiceOrdersItemRepository itemRepository;
 
-    @Mock
-    private ServiceOrdersRepository ordemServicoRepository;
+        @Mock
+        private ServiceOrdersRepository ordemServicoRepository;
 
-    @Mock
-    private ServicesRepository servicesRepository;
+        @Mock
+        private ServicesRepository servicesRepository;
 
-    @InjectMocks
-    private ServiceOrderItemService itemService;
+        private ServiceOrdersItemsService itemsService;
 
-    private UUID ordemServicoId;
-    private UUID servicoId;
+        private ServiceOrderItemService itemService;
 
-    private ServiceOrdersEntity ordemServico;
-    private ServicesEntity servico;
+        private UUID ordemServicoId;
+        private UUID servicoId;
 
-    @BeforeEach
-    void setUp() {
-        ordemServicoId = UUID.randomUUID();
-        servicoId = UUID.randomUUID();
+        private ServiceOrdersEntity ordemServico;
+        private ServicesEntity servico;
 
-        ordemServico = new ServiceOrdersEntity();
-        ordemServico.setId(ordemServicoId);
+        @BeforeEach
+        void setUp() {
+                ordemServicoId = UUID.randomUUID();
+                servicoId = UUID.randomUUID();
 
-        servico = new ServicesEntity();
-        servico.setId(servicoId);
-        servico.setValorBase(new BigDecimal("120.00"));
-    }
+                ordemServico = new ServiceOrdersEntity();
+                ordemServico.setId(ordemServicoId);
 
-    @Test
-    void deveAdicionarServicoComValorNegociado() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
+                servico = new ServicesEntity();
+                servico.setId(servicoId);
+                servico.setValorBase(new BigDecimal("120.00"));
 
-        when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
-                .thenReturn(Optional.of(servico));
+                itemsService = new ServiceOrdersItemsService(servicesRepository);
 
-        when(itemRepository.save(any(ServiceOrderItemEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                itemService = new ServiceOrderItemService(
+                                itemRepository,
+                                ordemServicoRepository,
+                                itemsService);
+        }
 
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                2,
-                new BigDecimal("100.00"),
-                "Serviço negociado");
+        @Test
+        void deveAdicionarServicoComValorNegociado() {
+                prepararOrdemServico();
+                prepararServico();
 
-        ServiceOrderItemResponse response = itemService.addItem(ordemServicoId, request);
+                when(itemRepository.save(any(ServiceOrdersItemEntity.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertNotNull(response);
-        assertEquals(servicoId, response.servicoId());
-        assertEquals(2, response.quantidade());
-        assertEquals(0, new BigDecimal("100.00")
-                .compareTo(response.valorUnitarioCobrado()));
-        assertEquals(0, new BigDecimal("200.00")
-                .compareTo(response.valorTotalItem()));
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                2,
+                                new BigDecimal("100.00"),
+                                "Serviço negociado");
 
-        verify(itemRepository).save(any(ServiceOrderItemEntity.class));
-    }
+                ServiceOrderItemResponse response = itemService.addItem(ordemServicoId, request);
 
-    @Test
-    void deveUtilizarValorBaseQuandoNaoInformarValorNegociado() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
+                assertNotNull(response);
+                assertEquals(servicoId, response.servicoId());
+                assertEquals(2L, response.quantidade());
 
-        when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
-                .thenReturn(Optional.of(servico));
+                assertEquals(0, new BigDecimal("100.00")
+                                .compareTo(response.valorUnitarioCobrado()));
 
-        when(itemRepository.save(any(ServiceOrderItemEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                assertEquals(0, new BigDecimal("200.00")
+                                .compareTo(response.valorTotalItem()));
 
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                2,
-                null,
-                null);
+                assertEquals("Serviço negociado", response.observacao());
 
-        ServiceOrderItemResponse response = itemService.addItem(ordemServicoId, request);
+                verify(itemRepository).save(any(ServiceOrdersItemEntity.class));
+        }
 
-        assertEquals(0, new BigDecimal("120.00")
-                .compareTo(response.valorUnitarioCobrado()));
+        @Test
+        void deveUtilizarValorBaseQuandoNaoInformarValorNegociado() {
+                prepararOrdemServico();
+                prepararServico();
 
-        assertEquals(0, new BigDecimal("240.00")
-                .compareTo(response.valorTotalItem()));
-    }
+                when(itemRepository.save(any(ServiceOrdersItemEntity.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-    @Test
-    void devePreservarValorHistoricoMesmoAposAlteracaoDoCatalogo() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                2,
+                                null,
+                                null);
 
-        when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
-                .thenReturn(Optional.of(servico));
+                ServiceOrderItemResponse response = itemService.addItem(ordemServicoId, request);
 
-        ArgumentCaptor<ServiceOrderItemEntity> captor = ArgumentCaptor.forClass(ServiceOrderItemEntity.class);
+                assertEquals(0, new BigDecimal("120.00")
+                                .compareTo(response.valorUnitarioCobrado()));
 
-        when(itemRepository.save(any(ServiceOrderItemEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                assertEquals(0, new BigDecimal("240.00")
+                                .compareTo(response.valorTotalItem()));
+        }
 
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                null,
-                null);
-
-        itemService.addItem(ordemServicoId, request);
-
-        verify(itemRepository).save(captor.capture());
-
-        ServiceOrderItemEntity itemSalvo = captor.getValue();
+        @Test
+        void devePreservarValorHistoricoMesmoAposAlteracaoDoCatalogo() {
+                prepararOrdemServico();
+                prepararServico();
 
-        servico.setValorBase(new BigDecimal("180.00"));
-
-        assertEquals(0, new BigDecimal("120.00")
-                .compareTo(itemSalvo.getValorUnitarioCobrado()));
+                ArgumentCaptor<ServiceOrdersItemEntity> captor = ArgumentCaptor.forClass(ServiceOrdersItemEntity.class);
 
-        assertEquals(0, new BigDecimal("120.00")
-                .compareTo(itemSalvo.getValorTotalItem()));
-    }
+                when(itemRepository.save(any(ServiceOrdersItemEntity.class)))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
 
-    @Test
-    void deveRejeitarQuantidadeIgualAZero() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                0,
-                null,
-                null);
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                null,
+                                null);
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
+                itemService.addItem(ordemServicoId, request);
 
-        assertEquals(400, exception.getStatusCode().value());
-
-        verifyNoInteractions(servicesRepository, itemRepository);
-    }
-
-    @Test
-    void deveRejeitarQuantidadeNegativa() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                -1,
-                null,
-                null);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
+                verify(itemRepository).save(captor.capture());
 
-        assertEquals(400, exception.getStatusCode().value());
-    }
+                ServiceOrdersItemEntity itemSalvo = captor.getValue();
 
-    @Test
-    void deveRejeitarValorNegativo() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                new BigDecimal("-10.00"),
-                null);
+                servico.setValorBase(new BigDecimal("180.00"));
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
+                assertEquals(0, new BigDecimal("120.00")
+                                .compareTo(itemSalvo.getValorUnitarioCobrado()));
 
-        assertEquals(400, exception.getStatusCode().value());
-    }
+                assertEquals(0, new BigDecimal("120.00")
+                                .compareTo(itemSalvo.getValorTotalItem()));
+        }
 
-    @Test
-    void deveRejeitarServicoInexistenteOuExcluido() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
+        @Test
+        void deveRejeitarQuantidadeIgualAZero() {
+                prepararOrdemServico();
+                prepararServico();
 
-        when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
-                .thenReturn(Optional.empty());
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                0,
+                                null,
+                                null);
 
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                null,
-                null);
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
+                assertEquals(400, exception.getStatusCode().value());
 
-        assertEquals(404, exception.getStatusCode().value());
+                verify(itemRepository, never()).save(any());
+        }
 
-        verify(itemRepository, never()).save(any());
-    }
+        @Test
+        void deveRejeitarQuantidadeNegativa() {
+                prepararOrdemServico();
+                prepararServico();
 
-    @Test
-    void deveRejeitarOrdemServicoInexistente() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.empty());
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                -1,
+                                null,
+                                null);
 
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                null,
-                null);
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
+                assertEquals(400, exception.getStatusCode().value());
 
-        assertEquals(404, exception.getStatusCode().value());
+                verify(itemRepository, never()).save(any());
+        }
 
-        verifyNoInteractions(servicesRepository, itemRepository);
-    }
+        @Test
+        void deveRejeitarValorNegativo() {
+                prepararOrdemServico();
+                prepararServico();
 
-    @Test
-    void deveCalcularSubtotalDaOrdemServico() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                new BigDecimal("-10.00"),
+                                null);
 
-        when(itemRepository.calcularSubtotal(ordemServicoId))
-                .thenReturn(new BigDecimal("350.00"));
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
 
-        BigDecimal subtotal = itemService.calculateSubtotal(ordemServicoId);
+                assertEquals(400, exception.getStatusCode().value());
 
-        assertEquals(0, new BigDecimal("350.00").compareTo(subtotal));
-    }
+                verify(itemRepository, never()).save(any());
+        }
 
-    @Test
-    void deveListarItensDaOrdemServico() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
+        @Test
+        void deveRejeitarServicoInexistenteOuExcluido() {
+                prepararOrdemServico();
 
-        ServiceOrderItemEntity item = new ServiceOrderItemEntity();
-        item.setId(UUID.randomUUID());
-        item.setOrdemServico(ordemServico);
-        item.setServico(servico);
-        item.setQuantidade(2);
-        item.setValorUnitarioCobrado(new BigDecimal("120.00"));
-        item.setValorTotalItem(new BigDecimal("240.00"));
+                when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
+                                .thenReturn(Optional.empty());
 
-        when(itemRepository.findAllByOrdemServico_Id(ordemServicoId))
-                .thenReturn(List.of(item));
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                null,
+                                null);
 
-        List<ServiceOrderItemResponse> response = itemService.listItems(ordemServicoId);
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
 
-        assertEquals(1, response.size());
-        assertEquals(servicoId, response.get(0).servicoId());
-        assertEquals(2, response.get(0).quantidade());
+                assertEquals(404, exception.getStatusCode().value());
 
-        assertEquals(0, new BigDecimal("240.00")
-                .compareTo(response.get(0).valorTotalItem()));
+                verify(itemRepository, never()).save(any());
+        }
 
-        verify(itemRepository).findAllByOrdemServico_Id(ordemServicoId);
-    }
+        @Test
+        void deveRejeitarOrdemServicoInexistente() {
+                when(ordemServicoRepository.findById(ordemServicoId))
+                                .thenReturn(Optional.empty());
 
-    @Test
-    void deveRetornarListaVaziaQuandoOrdemServicoNaoPossuirItens() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                null,
+                                null);
 
-        when(itemRepository.findAllByOrdemServico_Id(ordemServicoId))
-                .thenReturn(List.of());
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
 
-        List<ServiceOrderItemResponse> response = itemService.listItems(ordemServicoId);
-
-        assertNotNull(response);
-        assertTrue(response.isEmpty());
-    }
-
-    @Test
-    void deveRejeitarListagemDeItensDeOrdemServicoInexistente() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.empty());
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.listItems(ordemServicoId));
-
-        assertEquals(404, exception.getStatusCode().value());
+                assertEquals(404, exception.getStatusCode().value());
 
-        verify(itemRepository, never())
-                .findAllByOrdemServico_Id(any());
-    }
-
-    @Test
-    void deveRetornarSubtotalZeroQuandoNaoExistiremItens() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
-
-        when(itemRepository.calcularSubtotal(ordemServicoId))
-                .thenReturn(BigDecimal.ZERO);
-
-        BigDecimal subtotal = itemService.calculateSubtotal(ordemServicoId);
-
-        assertEquals(0, BigDecimal.ZERO.compareTo(subtotal));
-    }
-
-    @Test
-    void deveRejeitarCalculoDeSubtotalDeOrdemServicoInexistente() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.empty());
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.calculateSubtotal(ordemServicoId));
-
-        assertEquals(404, exception.getStatusCode().value());
-
-        verify(itemRepository, never()).calcularSubtotal(any());
-    }
-
-    @Test
-    void deveRejeitarRequisicaoNula() {
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, null));
-
-        assertEquals(400, exception.getStatusCode().value());
-
-        verifyNoInteractions(
-                ordemServicoRepository,
-                servicesRepository,
-                itemRepository);
-    }
-
-    @Test
-    void deveRejeitarIdentificadorDaOrdemServicoNulo() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                null,
-                null);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(null, request));
-
-        assertEquals(400, exception.getStatusCode().value());
-
-        verifyNoInteractions(
-                ordemServicoRepository,
-                servicesRepository,
-                itemRepository);
-    }
-
-    @Test
-    void deveRejeitarIdentificadorDoServicoNulo() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                null,
-                1,
-                null,
-                null);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
-
-        assertEquals(400, exception.getStatusCode().value());
-
-        verifyNoInteractions(
-                ordemServicoRepository,
-                servicesRepository,
-                itemRepository);
-    }
-
-    @Test
-    void deveRejeitarValorComMaisDeDuasCasasDecimais() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                new BigDecimal("100.001"),
-                null);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
-
-        assertEquals(400, exception.getStatusCode().value());
-
-        verifyNoInteractions(
-                ordemServicoRepository,
-                servicesRepository,
-                itemRepository);
-    }
-
-    @Test
-    void deveRejeitarValorAcimaDaPrecisaoPermitida() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                new BigDecimal("100000000000000000.00"),
-                null);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
-
-        assertEquals(400, exception.getStatusCode().value());
-
-        verifyNoInteractions(
-                ordemServicoRepository,
-                servicesRepository,
-                itemRepository);
-    }
-
-    @Test
-    void deveRejeitarValorBaseNulo() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
-
-        servico.setValorBase(null);
-
-        when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
-                .thenReturn(Optional.of(servico));
-
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                null,
-                null);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
-
-        assertEquals(400, exception.getStatusCode().value());
-
-        verify(itemRepository, never()).save(any());
-    }
-
-    @Test
-    void deveRejeitarValorBaseNegativo() {
-        when(ordemServicoRepository.findById(ordemServicoId))
-                .thenReturn(Optional.of(ordemServico));
-
-        servico.setValorBase(new BigDecimal("-50.00"));
-
-        when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
-                .thenReturn(Optional.of(servico));
-
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                null,
-                null);
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
-
-        assertEquals(400, exception.getStatusCode().value());
-
-        verify(itemRepository, never()).save(any());
-    }
-
-    @Test
-    void deveRejeitarObservacaoAcimaDoLimite() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                null,
-                "a".repeat(5001));
-
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServicoId, request));
-
-        assertEquals(400, exception.getStatusCode().value());
-
-        verifyNoInteractions(
-                ordemServicoRepository,
-                servicesRepository,
-                itemRepository);
-    }
+                verifyNoInteractions(servicesRepository, itemRepository);
+        }
+
+        @Test
+        void deveCalcularSubtotalDaOrdemServico() {
+                prepararOrdemServico();
+
+                ServiceOrdersItemEntity primeiro = criarItem(
+                                2,
+                                "100.00",
+                                "200.00");
+
+                ServiceOrdersItemEntity segundo = criarItem(
+                                3,
+                                "50.00",
+                                "150.00");
+
+                when(itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId))
+                                .thenReturn(List.of(primeiro, segundo));
+
+                BigDecimal subtotal = itemService.calculateSubtotal(ordemServicoId);
+
+                assertEquals(0, new BigDecimal("350.00").compareTo(subtotal));
+
+                verify(itemRepository)
+                                .findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId);
+        }
+
+        @Test
+        void deveListarItensDaOrdemServico() {
+                prepararOrdemServico();
+
+                ServiceOrdersItemEntity item = criarItem(
+                                2,
+                                "120.00",
+                                "240.00");
+
+                when(itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId))
+                                .thenReturn(List.of(item));
+
+                List<ServiceOrderItemResponse> response = itemService.listItems(ordemServicoId);
+
+                assertEquals(1, response.size());
+                assertEquals(servicoId, response.get(0).servicoId());
+                assertEquals(2L, response.get(0).quantidade());
+
+                assertEquals(0, new BigDecimal("240.00")
+                                .compareTo(response.get(0).valorTotalItem()));
+
+                verify(itemRepository)
+                                .findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId);
+        }
+
+        @Test
+        void deveRetornarListaVaziaQuandoOrdemServicoNaoPossuirItens() {
+                prepararOrdemServico();
+
+                when(itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId))
+                                .thenReturn(List.of());
+
+                List<ServiceOrderItemResponse> response = itemService.listItems(ordemServicoId);
+
+                assertNotNull(response);
+                assertTrue(response.isEmpty());
+        }
+
+        @Test
+        void deveRejeitarListagemDeItensDeOrdemServicoInexistente() {
+                when(ordemServicoRepository.findById(ordemServicoId))
+                                .thenReturn(Optional.empty());
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.listItems(ordemServicoId));
+
+                assertEquals(404, exception.getStatusCode().value());
+
+                verifyNoInteractions(itemRepository);
+        }
+
+        @Test
+        void deveRetornarSubtotalZeroQuandoNaoExistiremItens() {
+                prepararOrdemServico();
+
+                when(itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId))
+                                .thenReturn(List.of());
+
+                BigDecimal subtotal = itemService.calculateSubtotal(ordemServicoId);
+
+                assertEquals(0, new BigDecimal("0.00").compareTo(subtotal));
+        }
+
+        @Test
+        void deveRejeitarCalculoDeSubtotalDeOrdemServicoInexistente() {
+                when(ordemServicoRepository.findById(ordemServicoId))
+                                .thenReturn(Optional.empty());
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.calculateSubtotal(ordemServicoId));
+
+                assertEquals(404, exception.getStatusCode().value());
+
+                verifyNoInteractions(itemRepository);
+        }
+
+        @Test
+        void deveRejeitarRequisicaoNula() {
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, null));
+
+                assertEquals(400, exception.getStatusCode().value());
+
+                verifyNoInteractions(
+                                ordemServicoRepository,
+                                servicesRepository,
+                                itemRepository);
+        }
+
+        @Test
+        void deveRejeitarIdentificadorDaOrdemServicoNulo() {
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                null,
+                                null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(null, request));
+
+                assertEquals(400, exception.getStatusCode().value());
+
+                verifyNoInteractions(
+                                ordemServicoRepository,
+                                servicesRepository,
+                                itemRepository);
+        }
+
+        @Test
+        void deveRejeitarIdentificadorDoServicoNulo() {
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                null,
+                                1,
+                                null,
+                                null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
+
+                assertEquals(400, exception.getStatusCode().value());
+
+                verifyNoInteractions(
+                                ordemServicoRepository,
+                                servicesRepository,
+                                itemRepository);
+        }
+
+        @Test
+        void deveRejeitarValorComMaisDeDuasCasasDecimais() {
+                prepararOrdemServico();
+                prepararServico();
+
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                new BigDecimal("100.001"),
+                                null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
+
+                assertEquals(400, exception.getStatusCode().value());
+
+                verify(itemRepository, never()).save(any());
+        }
+
+        @Test
+        void deveRejeitarValorAcimaDaPrecisaoPermitida() {
+                prepararOrdemServico();
+                prepararServico();
+
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                new BigDecimal("100000000000000000.00"),
+                                null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
+
+                assertEquals(400, exception.getStatusCode().value());
+
+                verify(itemRepository, never()).save(any());
+        }
+
+        @Test
+        void deveRejeitarValorBaseNulo() {
+                prepararOrdemServico();
+
+                servico.setValorBase(null);
+
+                when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
+                                .thenReturn(Optional.of(servico));
+
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                null,
+                                null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
+
+                assertEquals(400, exception.getStatusCode().value());
+
+                verify(itemRepository, never()).save(any());
+        }
+
+        @Test
+        void deveRejeitarValorBaseNegativo() {
+                prepararOrdemServico();
+
+                servico.setValorBase(new BigDecimal("-50.00"));
+
+                when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
+                                .thenReturn(Optional.of(servico));
+
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                null,
+                                null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
+
+                assertEquals(400, exception.getStatusCode().value());
+
+                verify(itemRepository, never()).save(any());
+        }
+
+        @Test
+        void deveRejeitarObservacaoAcimaDoLimite() {
+                prepararOrdemServico();
+
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                null,
+                                "a".repeat(5001));
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServicoId, request));
+
+                assertEquals(400, exception.getStatusCode().value());
+
+                verifyNoInteractions(servicesRepository);
+                verify(itemRepository, never()).save(any());
+        }
+
+        private void prepararOrdemServico() {
+                when(ordemServicoRepository.findById(ordemServicoId))
+                                .thenReturn(Optional.of(ordemServico));
+        }
+
+        private void prepararServico() {
+                when(servicesRepository.findByIdAndDeletedAtIsNull(servicoId))
+                                .thenReturn(Optional.of(servico));
+        }
+
+        private ServiceOrdersItemEntity criarItem(
+                        Integer quantidade,
+                        String valorUnitario,
+                        String valorTotal) {
+
+                ServiceOrdersItemEntity item = new ServiceOrdersItemEntity();
+
+                item.setId(UUID.randomUUID());
+                item.setOrdem(ordemServico);
+                item.vincularServico(servico);
+                item.setQuantidade(BigDecimal.valueOf(quantidade));
+                item.setValorUnitarioCobrado(new BigDecimal(valorUnitario));
+                item.setValorTotalItem(new BigDecimal(valorTotal));
+                item.setCreatedAt(LocalDateTime.now());
+
+                return item;
+        }
 }
