@@ -20,6 +20,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -122,6 +123,11 @@ public class ServiceOrdersEntity {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
+    }
+
+    @PreRemove
+    private void preventDirectRemoval() {
+        throw new IllegalStateException("Utilize ServiceOrdersService.remover");
     }
 
     @PreUpdate
