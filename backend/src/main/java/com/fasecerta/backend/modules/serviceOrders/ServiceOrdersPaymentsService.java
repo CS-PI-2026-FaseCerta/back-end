@@ -42,9 +42,10 @@ public class ServiceOrdersPaymentsService {
         }
 
         ordem.setCondicaoPagamento(condicao);
-        ordem.setValorEntrada(entrada == null ? null : entrada.setScale(2));
-        ordem.setQuantidadeParcelas(parcelas);
-        ordem.setDescricaoParcelamento(descricao);
+        // Ao mudar para à vista, não conservar os dados da condição parcelada anterior.
+        ordem.setValorEntrada(parcelado && entrada != null ? entrada.setScale(2) : null);
+        ordem.setQuantidadeParcelas(parcelado ? parcelas : null);
+        ordem.setDescricaoParcelamento(parcelado ? descricao : null);
         ordem.setDetalhesPagamento(details);
     }
 
