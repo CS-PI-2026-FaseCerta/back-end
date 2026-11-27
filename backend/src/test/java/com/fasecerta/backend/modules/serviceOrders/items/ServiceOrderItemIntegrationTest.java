@@ -1,13 +1,17 @@
 
 package com.fasecerta.backend.modules.serviceOrders.items;
 
+import com.fasecerta.backend.modules.customer.CustomerEntity;
+import com.fasecerta.backend.modules.customer.CustomerRepository;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersEntity;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersNumberService;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersRepository;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.AddServiceOrderItemRequest;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.ServiceOrderItemResponse;
 import com.fasecerta.backend.modules.services.ServicesEntity;
 import com.fasecerta.backend.modules.services.ServicesRepository;
 import com.fasecerta.backend.shared.enums.BillingType;
+import com.fasecerta.backend.shared.enums.PersonType;
 
 import jakarta.persistence.EntityManager;
 
@@ -32,175 +36,198 @@ import static org.junit.jupiter.api.Assertions.*;
 @Transactional
 class ServiceOrderItemIntegrationTest {
 
-    @Autowired
-    private ServiceOrderItemService itemService;
+        @Autowired
+        private ServiceOrderItemService itemService;
 
-    @Autowired
-    private ServiceOrderItemRepository itemRepository;
+        @Autowired
+        private ServiceOrderItemRepository itemRepository;
 
-    @Autowired
-    private ServiceOrdersRepository ordemServicoRepository;
+        @Autowired
+        private ServiceOrdersRepository ordemServicoRepository;
 
-    @Autowired
-    private ServicesRepository servicesRepository;
+        @Autowired
+        private ServiceOrdersNumberService ordemServicoNumberService;
 
-    @Autowired
-    private EntityManager entityManager;
+        @Autowired
+        private CustomerRepository customerRepository;
 
-    private ServiceOrdersEntity ordemServico;
-    private ServicesEntity servico;
+        @Autowired
+        private ServicesRepository servicesRepository;
 
-    @BeforeEach
-    void setUp() {
-        ordemServico = new ServiceOrdersEntity();
-        ordemServico = ordemServicoRepository.saveAndFlush(ordemServico);
+        @Autowired
+        private EntityManager entityManager;
 
-        servico = new ServicesEntity();
-        servico.setNome("Troca de óleo");
-        servico.setDescricao("Troca de óleo do motor");
-        servico.setCategoria("Manutenção");
-        servico.setTipoCobranca(BillingType.REAL);
-        servico.setValorBase(new BigDecimal("120.00"));
-        servico.setCreatedBy(UUID.randomUUID());
-        servico.setCreatedAt(LocalDateTime.now());
-        servico.setUpdatedAt(LocalDateTime.now());
+        private ServiceOrdersEntity ordemServico;
+        private ServicesEntity servico;
 
-        servico = servicesRepository.saveAndFlush(servico);
-    }
+        @BeforeEach
+        void setUp() {
+                UUID usuarioId = UUID.randomUUID();
+                LocalDateTime agora = LocalDateTime.now();
 
-    @Test
-    void devePersistirItemComRelacionamentosEValoresCorretos() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servico.getId(),
-                2,
-                new BigDecimal("100.00"),
-                "Serviço negociado");
+                CustomerEntity cliente = new CustomerEntity();
+                cliente.setTipoPessoa(PersonType.PF);
+                cliente.setNomeCompleto("Cliente de teste");
+                cliente.setCreatedBy(usuarioId);
+                cliente.setCreatedAt(agora);
+                cliente.setUpdatedAt(agora);
 
-        ServiceOrderItemResponse response = itemService.addItem(
-                ordemServico.getId(),
-                request);
+                cliente = customerRepository.saveAndFlush(cliente);
 
-        entityManager.flush();
-        entityManager.clear();
+                ordemServico = new ServiceOrdersEntity();
+                ordemServico.setCliente(cliente);
+                ordemServico.setCreatedBy(usuarioId);
 
-        ServiceOrderItemEntity itemSalvo = itemRepository.findById(response.id())
-                .orElseThrow();
+                ordemServicoNumberService.atribuirNumero(ordemServico);
 
-        assertNotNull(itemSalvo.getId());
-        assertEquals(ordemServico.getId(), itemSalvo.getOrdemServico().getId());
-        assertEquals(servico.getId(), itemSalvo.getServico().getId());
-        assertEquals(2, itemSalvo.getQuantidade());
+                ordemServico = ordemServicoRepository.saveAndFlush(ordemServico);
 
-        assertEquals(
-                0,
-                new BigDecimal("100.00")
-                        .compareTo(itemSalvo.getValorUnitarioCobrado()));
+                servico = new ServicesEntity();
+                servico.setNome("Troca de óleo");
+                servico.setDescricao("Troca de óleo do motor");
+                servico.setCategoria("Manutenção");
+                servico.setTipoCobranca(BillingType.REAL);
+                servico.setValorBase(new BigDecimal("120.00"));
+                servico.setCreatedBy(usuarioId);
+                servico.setCreatedAt(agora);
+                servico.setUpdatedAt(agora);
 
-        assertEquals(
-                0,
-                new BigDecimal("200.00")
-                        .compareTo(itemSalvo.getValorTotalItem()));
+                servico = servicesRepository.saveAndFlush(servico);
+        }
 
-        assertEquals("Serviço negociado", itemSalvo.getObservacao());
-        assertNotNull(itemSalvo.getCreatedAt());
-    }
+        @Test
+        void devePersistirItemComRelacionamentosEValoresCorretos() {
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servico.getId(),
+                                2,
+                                new BigDecimal("100.00"),
+                                "Serviço negociado");
 
-    @Test
-    void devePreservarValorHistoricoAposAlteracaoDoCatalogo() {
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servico.getId(),
-                2,
-                null,
-                null);
+                ServiceOrderItemResponse response = itemService.addItem(
+                                ordemServico.getId(),
+                                request);
 
-        ServiceOrderItemResponse response = itemService.addItem(
-                ordemServico.getId(),
-                request);
+                entityManager.flush();
+                entityManager.clear();
 
-        servico.setValorBase(new BigDecimal("180.00"));
+                ServiceOrderItemEntity itemSalvo = itemRepository.findById(response.id())
+                                .orElseThrow();
 
-        servicesRepository.saveAndFlush(servico);
+                assertNotNull(itemSalvo.getId());
+                assertEquals(ordemServico.getId(), itemSalvo.getOrdemServico().getId());
+                assertEquals(servico.getId(), itemSalvo.getServico().getId());
+                assertEquals(2, itemSalvo.getQuantidade());
 
-        entityManager.flush();
-        entityManager.clear();
+                assertEquals(
+                                0,
+                                new BigDecimal("100.00")
+                                                .compareTo(itemSalvo.getValorUnitarioCobrado()));
 
-        ServiceOrderItemEntity itemSalvo = itemRepository.findById(response.id())
-                .orElseThrow();
+                assertEquals(
+                                0,
+                                new BigDecimal("200.00")
+                                                .compareTo(itemSalvo.getValorTotalItem()));
 
-        ServicesEntity servicoAtualizado = servicesRepository.findById(servico.getId())
-                .orElseThrow();
+                assertEquals("Serviço negociado", itemSalvo.getObservacao());
+                assertNotNull(itemSalvo.getCreatedAt());
+        }
 
-        assertEquals(
-                0,
-                new BigDecimal("180.00")
-                        .compareTo(servicoAtualizado.getValorBase()));
+        @Test
+        void devePreservarValorHistoricoAposAlteracaoDoCatalogo() {
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servico.getId(),
+                                2,
+                                null,
+                                null);
 
-        assertEquals(
-                0,
-                new BigDecimal("120.00")
-                        .compareTo(itemSalvo.getValorUnitarioCobrado()));
+                ServiceOrderItemResponse response = itemService.addItem(
+                                ordemServico.getId(),
+                                request);
 
-        assertEquals(
-                0,
-                new BigDecimal("240.00")
-                        .compareTo(itemSalvo.getValorTotalItem()));
-    }
+                servico.setValorBase(new BigDecimal("180.00"));
 
-    @Test
-    void deveCalcularSubtotalComTodosOsItensPersistidos() {
-        AddServiceOrderItemRequest primeiroItem = new AddServiceOrderItemRequest(
-                servico.getId(),
-                2,
-                new BigDecimal("100.00"),
-                null);
+                servicesRepository.saveAndFlush(servico);
 
-        AddServiceOrderItemRequest segundoItem = new AddServiceOrderItemRequest(
-                servico.getId(),
-                3,
-                new BigDecimal("50.00"),
-                null);
+                entityManager.flush();
+                entityManager.clear();
 
-        itemService.addItem(ordemServico.getId(), primeiroItem);
-        itemService.addItem(ordemServico.getId(), segundoItem);
+                ServiceOrderItemEntity itemSalvo = itemRepository.findById(response.id())
+                                .orElseThrow();
 
-        entityManager.flush();
-        entityManager.clear();
+                ServicesEntity servicoAtualizado = servicesRepository.findById(servico.getId())
+                                .orElseThrow();
 
-        BigDecimal subtotal = itemService.calculateSubtotal(ordemServico.getId());
+                assertEquals(
+                                0,
+                                new BigDecimal("180.00")
+                                                .compareTo(servicoAtualizado.getValorBase()));
 
-        assertEquals(
-                0,
-                new BigDecimal("350.00").compareTo(subtotal));
+                assertEquals(
+                                0,
+                                new BigDecimal("120.00")
+                                                .compareTo(itemSalvo.getValorUnitarioCobrado()));
 
-        List<ServiceOrderItemEntity> itens = itemRepository
-                .findAllByOrdemServico_Id(ordemServico.getId());
+                assertEquals(
+                                0,
+                                new BigDecimal("240.00")
+                                                .compareTo(itemSalvo.getValorTotalItem()));
+        }
 
-        assertEquals(2, itens.size());
-    }
+        @Test
+        void deveCalcularSubtotalComTodosOsItensPersistidos() {
+                AddServiceOrderItemRequest primeiroItem = new AddServiceOrderItemRequest(
+                                servico.getId(),
+                                2,
+                                new BigDecimal("100.00"),
+                                null);
 
-    @Test
-    void naoDeveAdicionarServicoExcluidoLogicamente() {
-        UUID servicoId = servico.getId();
+                AddServiceOrderItemRequest segundoItem = new AddServiceOrderItemRequest(
+                                servico.getId(),
+                                3,
+                                new BigDecimal("50.00"),
+                                null);
 
-        servicesRepository.delete(servico);
+                itemService.addItem(ordemServico.getId(), primeiroItem);
+                itemService.addItem(ordemServico.getId(), segundoItem);
 
-        entityManager.flush();
-        entityManager.clear();
+                entityManager.flush();
+                entityManager.clear();
 
-        AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
-                servicoId,
-                1,
-                null,
-                null);
+                BigDecimal subtotal = itemService.calculateSubtotal(ordemServico.getId());
 
-        ResponseStatusException exception = assertThrows(
-                ResponseStatusException.class,
-                () -> itemService.addItem(ordemServico.getId(), request));
+                assertEquals(
+                                0,
+                                new BigDecimal("350.00").compareTo(subtotal));
 
-        assertEquals(404, exception.getStatusCode().value());
+                List<ServiceOrderItemEntity> itens = itemRepository
+                                .findAllByOrdemServico_Id(ordemServico.getId());
 
-        assertEquals(
-                0,
-                itemRepository.count());
-    }
+                assertEquals(2, itens.size());
+        }
+
+        @Test
+        void naoDeveAdicionarServicoExcluidoLogicamente() {
+                UUID servicoId = servico.getId();
+
+                servicesRepository.delete(servico);
+
+                entityManager.flush();
+                entityManager.clear();
+
+                AddServiceOrderItemRequest request = new AddServiceOrderItemRequest(
+                                servicoId,
+                                1,
+                                null,
+                                null);
+
+                ResponseStatusException exception = assertThrows(
+                                ResponseStatusException.class,
+                                () -> itemService.addItem(ordemServico.getId(), request));
+
+                assertEquals(404, exception.getStatusCode().value());
+
+                assertEquals(
+                                0,
+                                itemRepository.count());
+        }
 }
