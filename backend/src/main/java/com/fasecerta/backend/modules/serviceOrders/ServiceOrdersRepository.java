@@ -1,15 +1,13 @@
 package com.fasecerta.backend.modules.serviceOrders;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.NativeQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.util.Streamable;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,30 +18,25 @@ public interface ServiceOrdersRepository
 
     Optional<ServiceOrdersEntity> findByIdAndDeletedAtIsNull(UUID id);
 
-    // Bulk operations bypass the entity's @SQLDelete.
-    String MARK_ACTIVE_ORDERS_AS_DELETED =
-            "UPDATE ServiceOrdersEntity os SET os.deletedAt = LOCAL DATETIME WHERE os.deletedAt IS NULL";
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT os FROM ServiceOrdersEntity os WHERE os.id = :id AND os.deletedAt IS NULL")
+    Optional<ServiceOrdersEntity> findActiveByIdForUpdate(UUID id);
 
+    // Operações em lote ignoram os callbacks da entidade; a remoção deve passar pelo serviço.
     @Override
     default void deleteAllByIdInBatch(Iterable<UUID> ids) {
-        markDeletedByIds(Streamable.of(ids).toList());
+        throw new UnsupportedOperationException("Utilize ServiceOrdersService.remover");
     }
 
     @Override
     default void deleteAllInBatch(Iterable<ServiceOrdersEntity> orders) {
-        markDeletedByIds(Streamable.of(orders).map(ServiceOrdersEntity::getId).toList());
+        throw new UnsupportedOperationException("Utilize ServiceOrdersService.remover");
     }
 
-    @Transactional
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query(MARK_ACTIVE_ORDERS_AS_DELETED + " AND os.id IN :ids")
-    void markDeletedByIds(List<UUID> ids);
-
     @Override
-    @Transactional
-    @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query(MARK_ACTIVE_ORDERS_AS_DELETED)
-    void deleteAllInBatch();
+    default void deleteAllInBatch() {
+        throw new UnsupportedOperationException("Utilize ServiceOrdersService.remover");
+    }
 
     String ACTIVE_SUMMARY_FILTERS = """
             WHERE os.deleted_at IS NULL
