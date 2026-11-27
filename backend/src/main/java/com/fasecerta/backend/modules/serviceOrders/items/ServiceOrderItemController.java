@@ -1,4 +1,3 @@
-
 package com.fasecerta.backend.modules.serviceOrders.items;
 
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.AddServiceOrderItemRequest;
@@ -9,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,16 +34,19 @@ public class ServiceOrderItemController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ServiceOrderItemResponse> addItem(
             @PathVariable UUID ordemServicoId,
-            @Valid @RequestBody AddServiceOrderItemRequest request) {
+            @Valid @RequestBody AddServiceOrderItemRequest request,
+            Authentication authentication) {
+
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(itemService.addItem(ordemServicoId, request));
+                .body(itemService.addItem(ordemServicoId, request, authentication));
     }
 
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ServiceOrderItemResponse>> listItems(
             @PathVariable UUID ordemServicoId) {
+
         return ResponseEntity.ok(itemService.listItems(ordemServicoId));
     }
 
@@ -51,6 +54,7 @@ public class ServiceOrderItemController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<BigDecimal> calculateSubtotal(
             @PathVariable UUID ordemServicoId) {
+
         return ResponseEntity.ok(
                 itemService.calculateSubtotal(ordemServicoId));
     }
