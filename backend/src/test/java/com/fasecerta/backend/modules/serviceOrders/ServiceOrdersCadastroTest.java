@@ -35,19 +35,20 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -161,6 +162,11 @@ class ServiceOrdersCadastroTest {
                 .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")));
     }
 
+    private ResultActions deleteOrder(UUID id, UUID actor) throws Exception {
+        return mvc.perform(delete("/api/ordens-servico/{id}", id)
+                .header("Authorization", "Bearer " + jwtService.generateToken(actor, "TECNICO")));
+    }
+
     private MockHttpServletRequestBuilder listRequest() {
         return get("/api/ordens-servico")
                 .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO"));
@@ -185,7 +191,7 @@ class ServiceOrdersCadastroTest {
         UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
         UUID last = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
         UUID deleted = lerId(submit(validRequest()).andExpect(status().isCreated()));
-        ordens.deleteById(deleted);
+        deleteOrder(deleted, usuarioId).andExpect(status().isOk());
         customers.deleteById(clienteId);
 
         int total = initialTotal + 2;
@@ -236,7 +242,7 @@ class ServiceOrdersCadastroTest {
                 .andExpect(jsonPath("$.items").isEmpty())
                 .andExpect(jsonPath("$.total").value(0));
 
-        ordens.deleteById(id);
+        deleteOrder(id, usuarioId).andExpect(status().isOk());
         mvc.perform(listRequest().param("numeroOs", number))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items").isEmpty())
@@ -248,20 +254,20 @@ class ServiceOrdersCadastroTest {
         UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
         UUID second = lerId(submit(validRequest()).andExpect(status().isCreated()));
         UUID removed = lerId(submit(validRequest()).andExpect(status().isCreated()));
-        var paidOrders = ordens.findAllById(List.of(first, second, removed));
-        for (var order : paidOrders) {
-            order.setStatus(StatusOS.PAGO);
+        var notApprovedOrders = ordens.findAllById(List.of(first, second, removed));
+        for (var order : notApprovedOrders) {
+            order.setStatus(StatusOS.NAO_APROVADO);
         }
-        ordens.saveAllAndFlush(paidOrders);
-        ordens.deleteById(removed);
+        ordens.saveAllAndFlush(notApprovedOrders);
+        deleteOrder(removed, usuarioId).andExpect(status().isOk());
         submit(validRequest()).andExpect(status().isCreated());
 
-        mvc.perform(listRequest().param("status", "PAGO").param("limit", "1"))
+        mvc.perform(listRequest().param("status", "NAO_APROVADO").param("limit", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(second.toString()))
                 .andExpect(jsonPath("$.total").value(2))
                 .andExpect(jsonPath("$.totalPages").value(2));
-        mvc.perform(listRequest().param("status", "PAGO").param("limit", "1").param("page", "2"))
+        mvc.perform(listRequest().param("status", "NAO_APROVADO").param("limit", "1").param("page", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].id").value(first.toString()));
     }
@@ -368,7 +374,7 @@ class ServiceOrdersCadastroTest {
     void returnsNotFoundForUnknownOrDeletedOrder() throws Exception {
         getOrder(UUID.randomUUID()).andExpect(status().isNotFound());
         UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
-        ordens.deleteById(id);
+        deleteOrder(id, usuarioId).andExpect(status().isOk());
 
         assertOrderMarkedAsDeleted(id);
         assertEquals(1L, entityManager.createNativeQuery(
@@ -380,23 +386,102 @@ class ServiceOrdersCadastroTest {
         getOrder(id).andExpect(status().isNotFound());
     }
 
+    @ParameterizedTest
+    @EnumSource(value = StatusOS.class, names = {"EM_ABERTO", "NAO_APROVADO"})
+    void softDeletesAllowedOrdersWithAuditAndPreservesHistory(StatusOS initialStatus) throws Exception {
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+        var order = ordens.findById(id).orElseThrow();
+        order.setStatus(initialStatus);
+        order = ordens.saveAndFlush(order);
+        var before = ordens.findById(id).orElseThrow();
+        var customerBefore = customers.findById(clienteId).orElseThrow();
+        var serviceBefore = catalogo.findById(servicoId).orElseThrow();
+        UUID actor = UUID.randomUUID();
+
+        deleteOrder(id, actor).andExpect(status().isOk());
+        assertOrderMarkedAsDeleted(id);
+        assertTrue(ordens.findByNumeroOs(before.getNumeroOs()).isEmpty());
+        assertEquals(1L, entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM ordens_servico
+                WHERE id = :id AND updated_by = :actor AND created_by = :creator
+                  AND status = :status AND cliente_id = :customer
+                  AND valor_total = 630.00 AND condicao_pagamento = 'PARCELADO'
+                  AND detalhes_pagamento = 'Vencimento mensal'
+                """, Long.class)
+                .setParameter("id", id).setParameter("actor", actor)
+                .setParameter("creator", usuarioId).setParameter("status", initialStatus.name())
+                .setParameter("customer", clienteId).getSingleResult());
+        LocalDateTime updatedAt = entityManager.createNativeQuery(
+                "SELECT updated_at FROM ordens_servico WHERE id = :id", LocalDateTime.class)
+                .setParameter("id", id).getSingleResult();
+        LocalDateTime deletedAt = entityManager.createNativeQuery(
+                "SELECT deleted_at FROM ordens_servico WHERE id = :id", LocalDateTime.class)
+                .setParameter("id", id).getSingleResult();
+        assertTrue(!updatedAt.isBefore(before.getUpdatedAt()));
+        assertTrue(!updatedAt.isBefore(deletedAt));
+        assertEquals(1L, entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM os_servicos WHERE os_id = :id AND servico_id = :service
+                  AND quantidade = 2 AND valor_unitario_cobrado = 350.00 AND valor_total_item = 700.00
+                """, Long.class).setParameter("id", id).setParameter("service", servicoId).getSingleResult());
+        assertEquals(2L, entityManager.createNativeQuery("""
+                SELECT COUNT(*) FROM os_meios_pagamento
+                WHERE os_id = :id AND meio_pagamento IN ('PIX', 'BOLETO')
+                """, Long.class).setParameter("id", id).getSingleResult());
+        assertEquals(customerBefore, customers.findById(clienteId).orElseThrow());
+        var serviceAfter = catalogo.findById(servicoId).orElseThrow();
+        assertEquals(serviceBefore.getUpdatedAt(), serviceAfter.getUpdatedAt());
+        assertEquals(serviceBefore.getUpdatedBy(), serviceAfter.getUpdatedBy());
+        assertEquals(serviceBefore.getValorBase(), serviceAfter.getValorBase());
+        assertNull(serviceAfter.getDeletedAt());
+
+        getOrder(id).andExpect(status().isNotFound());
+        mvc.perform(listRequest().param("numeroOs", before.getNumeroOs().toString()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(0))
+                .andExpect(jsonPath("$.items").isEmpty());
+        deleteOrder(id, usuarioId).andExpect(status().isNotFound());
+        assertEquals(updatedAt, entityManager.createNativeQuery(
+                "SELECT updated_at FROM ordens_servico WHERE id = :id", LocalDateTime.class)
+                .setParameter("id", id).getSingleResult());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = StatusOS.class, names = {"EM_EXECUCAO", "A_RECEBER", "PAGO_PARCIAL", "PAGO"})
+    void rejectsDeletionInOperationalStates(StatusOS currentStatus) throws Exception {
+        UUID id = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        var order = ordens.findById(id).orElseThrow();
+        order.setStatus(currentStatus);
+        ordens.saveAndFlush(order);
+        var before = ordens.findById(id).orElseThrow();
+
+        deleteOrder(id, usuarioId).andExpect(status().isConflict());
+        var after = ordens.findById(id).orElseThrow();
+        assertEquals(currentStatus, after.getStatus());
+        assertNull(after.getDeletedAt());
+        assertEquals(before.getUpdatedAt(), after.getUpdatedAt());
+        assertEquals(before.getUpdatedBy(), after.getUpdatedBy());
+    }
+
     @Test
-    @Transactional
-    void batchDeletionsRetainOrdersAndRespectTheSelectedIds() throws Exception {
-        UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
-        UUID second = lerId(submit(validRequest()).andExpect(status().isCreated()));
-        UUID third = lerId(submit(validRequest()).andExpect(status().isCreated()));
+    void rejectsUnauthenticatedDeletionAndUnknownOrder() throws Exception {
+        UUID id = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        mvc.perform(delete("/api/ordens-servico/{id}", id)).andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/ordens-servico/{id}", id).header("Authorization", "Bearer invalido"))
+                .andExpect(status().isUnauthorized());
+        assertTrue(ordens.findById(id).isPresent());
+        deleteOrder(UUID.randomUUID(), usuarioId).andExpect(status().isNotFound());
+    }
 
-        ordens.deleteAllByIdInBatch(List.of(first)::iterator);
-        assertOrderMarkedAsDeleted(first);
-        var secondOrder = ordens.findById(second).orElseThrow();
+    @Test
+    void blocksDirectAndBatchDeletionsWithoutAudit() throws Exception {
+        UUID id = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        var order = ordens.findById(id).orElseThrow();
 
-        ordens.deleteAllInBatch(List.of(secondOrder)::iterator);
-        assertOrderMarkedAsDeleted(second);
-        assertTrue(ordens.findById(third).isPresent());
-
-        ordens.deleteAllInBatch();
-        assertOrderMarkedAsDeleted(third);
+        assertThrows(RuntimeException.class, () -> ordens.deleteById(id));
+        assertThrows(RuntimeException.class, () -> ordens.delete(order));
+        assertThrows(UnsupportedOperationException.class, () -> ordens.deleteAllByIdInBatch(List.of(id)::iterator));
+        assertThrows(UnsupportedOperationException.class, () -> ordens.deleteAllInBatch(List.of(order)::iterator));
+        assertThrows(UnsupportedOperationException.class, () -> ordens.deleteAllInBatch());
+        assertTrue(ordens.findById(id).isPresent());
     }
 
     private void assertOrderMarkedAsDeleted(UUID id) {
