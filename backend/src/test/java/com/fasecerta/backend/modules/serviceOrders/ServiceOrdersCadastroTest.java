@@ -1,6 +1,7 @@
 package com.fasecerta.backend.modules.serviceOrders;
 
 import com.fasecerta.backend.modules.auth.security.JwtService;
+import com.fasecerta.backend.exceptions.UnauthenticatedException;
 import com.fasecerta.backend.modules.customer.CustomerEntity;
 import com.fasecerta.backend.modules.customer.CustomerRepository;
 import com.fasecerta.backend.modules.services.ServicesEntity;
@@ -28,8 +29,12 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,9 +46,10 @@ import tools.jackson.databind.node.ObjectNode;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -77,6 +83,9 @@ class ServiceOrdersCadastroTest {
 
     @Autowired
     private ServiceOrdersRepository ordens;
+
+    @Autowired
+    private ServiceOrdersService ordersService;
 
     @Autowired
     private ServiceOrdersItemRepository itens;
@@ -153,6 +162,11 @@ class ServiceOrdersCadastroTest {
                 .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, profile.name()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsBytes(request)));
+    }
+
+    private Authentication authenticatedUser() {
+        return UsernamePasswordAuthenticationToken.authenticated(
+                usuarioId.toString(), null, List.of(new SimpleGrantedAuthority("ROLE_TECNICO")));
     }
 
     private record Counts(long orders, long items, long paymentMethods, long numbers) {}
@@ -763,5 +777,138 @@ class ServiceOrdersCadastroTest {
                 .putArray("meios").add("PIX");
         assertRejected(request, HttpStatus.INTERNAL_SERVER_ERROR)
                 .andExpect(jsonPath("$.message").value("Falha simulada após gravar"));
+    }
+
+    @Test
+    void cadastraPixEDinheiroEConsultaMeiosPersistidos() throws Exception {
+        ObjectNode request = validRequest();
+        request.putObject("pagamento").put("condicao", "A_VISTA")
+                .putArray("meios").add("PIX").add("DINHEIRO");
+
+        UUID id = lerId(submit(request).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "DINHEIRO"))));
+
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "DINHEIRO")));
+        assertEquals(Set.of(PaymentMethod.PIX, PaymentMethod.DINHEIRO),
+                Set.copyOf(meios.findAllByOrdem_Id(id).stream()
+                        .map(ServiceOrdersPaymentMethodEntity::getMeioPagamento).toList()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"CHEQUE", "TRANSFERENCIA"})
+    void cadastraMeioAdicionadoOuLegado(String method) throws Exception {
+        ObjectNode request = validRequest();
+        request.putObject("pagamento").put("condicao", "A_VISTA")
+                .putArray("meios").add(method);
+
+        UUID id = lerId(submit(request).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.pagamento.meios[0]").value(method)));
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios[0]").value(method));
+    }
+
+    @Test
+    void substituiMeiosSemAlterarStatusOuValorEIsolaOutrasOrdens() throws Exception {
+        ObjectNode request = validRequest();
+        request.putObject("pagamento").put("condicao", "A_VISTA")
+                .putArray("meios").add("PIX").add("DINHEIRO");
+        UUID id = lerId(submit(request).andExpect(status().isCreated()));
+        UUID outraId = lerId(submit(request).andExpect(status().isCreated()));
+        BigDecimal totalAntes = ordens.findById(id).orElseThrow().getValorTotal();
+
+        var detalhe = ordersService.substituirMeios(id,
+                List.of(PaymentMethod.BOLETO, PaymentMethod.CHEQUE), authenticatedUser());
+
+        assertEquals(Set.of(PaymentMethod.BOLETO, PaymentMethod.CHEQUE),
+                Set.copyOf(detalhe.order().pagamento().meios()));
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("BOLETO", "CHEQUE")));
+        getOrder(outraId).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "DINHEIRO")));
+        var ordem = ordens.findById(id).orElseThrow();
+        assertEquals(StatusOS.EM_ABERTO, ordem.getStatus());
+        assertEquals(totalAntes, ordem.getValorTotal());
+        assertEquals(usuarioId, ordem.getUpdatedBy());
+    }
+
+    @Test
+    void listaVaziaRemoveTodosOsMeios() throws Exception {
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+
+        var detalhe = ordersService.substituirMeios(id, List.of(), authenticatedUser());
+
+        assertTrue(detalhe.order().pagamento().meios().isEmpty());
+        assertTrue(meios.findAllByOrdem_Id(id).isEmpty());
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios").isEmpty());
+    }
+
+    @Test
+    void substituicaoInvalidaPreservaMeiosAnteriores() throws Exception {
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+
+        for (List<PaymentMethod> invalidos : List.of(
+                java.util.Arrays.asList(PaymentMethod.CHEQUE, null),
+                List.of(PaymentMethod.CHEQUE, PaymentMethod.CHEQUE))) {
+            ResponseStatusException erro = assertThrows(ResponseStatusException.class,
+                    () -> ordersService.substituirMeios(id, invalidos, authenticatedUser()));
+            assertEquals(HttpStatus.BAD_REQUEST, erro.getStatusCode());
+        }
+        assertEquals(HttpStatus.BAD_REQUEST, assertThrows(ResponseStatusException.class,
+                () -> ordersService.substituirMeios(id, null, authenticatedUser())).getStatusCode());
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "BOLETO")));
+    }
+
+    @Test
+    void falhaAposFlushNaSubstituicaoFazRollback() throws Exception {
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+        doAnswer(invocation -> {
+            Iterable<ServiceOrdersPaymentMethodEntity> registros = invocation.getArgument(0);
+            for (ServiceOrdersPaymentMethodEntity registro : registros) {
+                entityManager.persist(registro);
+            }
+            entityManager.flush();
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Falha simulada");
+        }).when(meios).saveAllAndFlush(any());
+
+        assertThrows(ResponseStatusException.class,
+                () -> ordersService.substituirMeios(id, List.of(PaymentMethod.CHEQUE), authenticatedUser()));
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "BOLETO")));
+    }
+
+    @Test
+    void indiceUnicoRejeitaDuplicataMesmoSemValidacaoDoServico() throws Exception {
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+        ServiceOrdersEntity ordem = ordens.findById(id).orElseThrow();
+
+        assertThrows(DataIntegrityViolationException.class,
+                () -> meios.saveAndFlush(new ServiceOrdersPaymentMethodEntity(ordem, PaymentMethod.PIX)));
+        assertEquals(2, meios.findAllByOrdem_Id(id).size());
+    }
+
+    @Test
+    void naoSubstituiMeiosDeOrdemInexistenteOuRemovida() throws Exception {
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException.class,
+                () -> ordersService.substituirMeios(UUID.randomUUID(), List.of(PaymentMethod.PIX), authenticatedUser()))
+                .getStatusCode());
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+        deleteOrder(id, usuarioId).andExpect(status().isOk());
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException.class,
+                () -> ordersService.substituirMeios(id, List.of(PaymentMethod.CHEQUE), authenticatedUser()))
+                .getStatusCode());
+        assertFalse(meios.findAllByOrdem_Id(id).isEmpty());
+    }
+
+    @Test
+    void usuarioNaoAutenticadoNaoSubstituiMeios() throws Exception {
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+
+        assertThrows(UnauthenticatedException.class,
+                () -> ordersService.substituirMeios(id, List.of(PaymentMethod.CHEQUE), null));
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "BOLETO")));
     }
 }
