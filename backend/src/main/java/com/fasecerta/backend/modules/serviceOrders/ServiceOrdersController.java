@@ -5,6 +5,7 @@ import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrde
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderDetailResponse;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderPage;
 import com.fasecerta.backend.shared.enums.StatusOS;
@@ -39,6 +40,12 @@ public class ServiceOrdersController {
     @GetMapping("/{id}")
     public ServiceOrderDetailResponse findById(@PathVariable UUID id) {
         return service.findById(id);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public void remover(@PathVariable UUID id, Authentication authentication) {
+        service.remover(id, authentication);
     }
 
     @PostMapping
