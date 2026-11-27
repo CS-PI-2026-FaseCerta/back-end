@@ -1,20 +1,61 @@
 # Meios de pagamento aceitos pela Ordem de Serviço
 
-`ServiceOrderPaymentMethodService` mantém os meios aceitos por `osId`, sem depender da entidade ou dos endpoints de Ordem de Serviço. `replace(osId, methods)` valida a coleção inteira antes de excluir os valores antigos e gravar os novos, dentro de uma transação. Uma coleção vazia remove todas as associações. `findByOsId(osId)` devolve os meios cadastrados. O serviço não verifica a existência da OS; essa responsabilidade pertence ao módulo de OS.
+A tabela `os_meios_pagamento` possui um único mapeamento JPA: `ServiceOrdersPaymentMethodEntity`, no módulo `serviceOrders`. Cada registro pertence a uma OS por `@ManyToOne` e guarda um valor textual de `PaymentMethod`. A combinação `(os_id, meio_pagamento)` é única. O enum compartilhado mantém `TRANSFERENCIA`; `TRANSFERENCIA_BANCARIA` não integra o contrato da API.
 
-O enum compartilhado mantém `TRANSFERENCIA`, que é o nome já usado pelo backend, e acrescenta `CHEQUE`. `TRANSFERENCIA_BANCARIA` não é um valor aceito e não deve ser enviado em DTOs futuros sem uma decisão explícita de compatibilidade.
+## Fluxos disponíveis
 
-## Persistência atual
+- O POST `/api/ordens-servico` valida todos os meios de `pagamento.meios` antes de persistir a OS, seus itens e seus meios na mesma transação. Duplicatas, valores nulos ou desconhecidos resultam em HTTP 400.
+- O GET `/api/ordens-servico/{id}` lê os meios da tabela e os devolve em `pagamento.meios`.
+- `ServiceOrdersService.substituirMeios(id, novosMeios, authentication)` prepara a atualização futura: exige usuário autenticado e OS ativa, rejeita lista nula ou elementos inválidos, aceita lista vazia para remover todos os meios, substitui os registros em uma transação e devolve o detalhe com os meios persistidos. A operação registra `updatedBy` na OS. Uma exceção após a exclusão causa rollback e preserva os meios anteriores.
 
-O projeto usa `spring.jpa.hibernate.ddl-auto=update` e não possui Flyway ou Liquibase. O mapeamento JPA cria `os_meios_pagamento` com `id` e `os_id` em UUID binário, `meio_pagamento` como enum textual e restrição `UNIQUE (os_id, meio_pagamento)`. Não há foreign key para a OS neste estágio. Em ambientes onde o Hibernate não gerencia o schema, a equipe de banco deve criar uma migration equivalente antes do deploy.
+Os meios representam opções **aceitas**, não pagamentos realizados. A operação não altera status, total ou quitação.
 
-Como `PaymentMethod` também é usado em `despesas`, confirme no MySQL que a coluna `modo_pagamento` existente passa a aceitar `CHEQUE`. O Hibernate pode mapeá-la como `ENUM` nativo e `ddl-auto=update` não substitui uma migration de produção revisada. Os testes desta entrega usam H2; ainda não validam a evolução de um schema MySQL já populado.
+## Pendência do PUT da OS
 
-## Integração futura com a OS
+Esta branch não possui PUT em `ServiceOrdersController` nem DTO de atualização da OS. A operação `substituirMeios` é **somente interna ao serviço**; ainda não é possível testar a substituição por HTTP.
 
-1. No fluxo de criação da OS, persista a OS primeiro para obter seu UUID e chame `replace(osId, meiosAceitos)` no mesmo método transacional do serviço de OS. Uma falha em qualquer etapa deve reverter ambas as gravações.
-2. No GET detalhado, chame `findByOsId(osId)` e inclua a lista na resposta da OS.
-3. No PUT, valide os meios recebidos e chame `replace(osId, meiosAceitos)` dentro da transação de atualização da OS. A lista informada substitui a anterior.
-4. Quando a entidade e a tabela da OS estiverem estabilizadas, adicione a foreign key para `os_id` em uma nova migration, após verificar registros órfãos. Se optar por relacionamento JPA, faça essa alteração junto com a integração do módulo de OS.
+Quando o contrato de atualização completa for implementado:
 
-Esses registros representam formas **aceitas**, não recebimentos ou quitação. Nenhum endpoint provisório é exposto por este módulo.
+1. Faça o controller exigir a autenticação atual e encaminhar o DTO de atualização ao serviço da OS. Mantenha as regras já definidas para itens, desconto, cálculo, status e demais campos.
+2. Execute todas as alterações da OS em **um único método transacional**. Dentro dessa transação, chame `substituirMeios(id, novosMeios, authentication)` somente quando houver uma lista de meios a substituir. A operação usa a transação existente e reverte a exclusão e as novas inserções se qualquer etapa da atualização falhar.
+3. Se `pagamento` ou `pagamento.meios` estiver ausente ou nulo, preserve as associações atuais; a semântica definitiva deve ser declarada no DTO do PUT. Se uma lista vazia for enviada explicitamente, passe `List.of()` para remover todas as associações. Não converta campo ausente ou nulo em lista vazia.
+4. Devolva o detalhe atualizado usando a leitura dos meios persistidos, mantendo o campo `pagamento.meios`. Não acrescente um campo paralelo nem um endpoint exclusivo.
+5. Acrescente testes HTTP de PUT autenticado e sem token para substituição, lista vazia, campo omitido, campo nulo, elementos nulos, nomes desconhecidos, duplicatas e rollback; depois faça GET do mesmo ID para comprovar o estado persistido. Os testes atuais cobrem a operação de serviço e o GET, mas não substituem essa verificação HTTP.
+
+## Conferência do MySQL existente
+
+O projeto usa `spring.jpa.hibernate.ddl-auto=update` e não possui Flyway nem Liquibase. O relacionamento JPA gera uma foreign key em um schema novo; o nome atribuído pelo Hibernate pode variar. Não se deve presumir que o Hibernate removerá índices antigos ou reconciliará nomes de constraints em um schema existente. Antes do deploy, confira o schema e os dados:
+
+```sql
+SHOW CREATE TABLE os_meios_pagamento;
+
+SELECT m.os_id
+FROM os_meios_pagamento m
+LEFT JOIN ordens_servico os ON os.id = m.os_id
+WHERE os.id IS NULL
+LIMIT 20;
+
+SELECT index_name, non_unique,
+       GROUP_CONCAT(column_name ORDER BY seq_in_index) AS columns_in_index
+FROM information_schema.statistics
+WHERE table_schema = DATABASE() AND table_name = 'os_meios_pagamento'
+GROUP BY index_name, non_unique;
+
+SELECT constraint_name, referenced_table_name
+FROM information_schema.key_column_usage
+WHERE table_schema = DATABASE()
+  AND table_name = 'os_meios_pagamento'
+  AND column_name = 'os_id';
+```
+
+Se não houver órfãos, `os_id` e `ordens_servico.id` tiverem tipos compatíveis e ainda não existir foreign key, a alteração manual correspondente é:
+
+```sql
+ALTER TABLE os_meios_pagamento
+  ADD CONSTRAINT fk_os_meios_pagamento_os
+  FOREIGN KEY (os_id) REFERENCES ordens_servico(id);
+```
+
+Se faltar a unicidade, adicione `UNIQUE KEY uk_os_meio_pagamento (os_id, meio_pagamento)` após verificar e resolver duplicatas. Se os índices `uk_os_meio_pagamento` e `uk_os_meios_pagamento_os_meio` coexistirem, remova o redundante somente após confirmar que o outro cobre as duas colunas e que nenhuma foreign key depende dele. Nenhum desses comandos foi executado automaticamente nesta entrega.
+
+Como `PaymentMethod` também é usado em `despesas`, confira se o `ENUM` MySQL de `despesas.modo_pagamento` aceita `CHEQUE`. Os testes automatizados usam H2 e não comprovam a evolução de um banco MySQL já populado.

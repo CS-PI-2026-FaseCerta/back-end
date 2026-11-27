@@ -49,15 +49,19 @@ public class ServiceOrdersPaymentsService {
     }
 
     public List<ServiceOrdersPaymentMethodEntity> prepararMeios(ServiceOrdersEntity ordem, PaymentRequest pagamento) {
+        return prepararMeios(ordem, pagamento == null ? null : pagamento.meios());
+    }
 
-        if (pagamento == null || pagamento.meios() == null) {
+    public List<ServiceOrdersPaymentMethodEntity> prepararMeios(
+            ServiceOrdersEntity ordem, List<PaymentMethod> selecionadosParaPagamento) {
+        if (selecionadosParaPagamento == null) {
             return List.of();
         }
 
         var selecionados = EnumSet.noneOf(PaymentMethod.class);
         List<ServiceOrdersPaymentMethodEntity> meios = new ArrayList<>();
 
-        for (PaymentMethod meio : pagamento.meios()) {
+        for (PaymentMethod meio : selecionadosParaPagamento) {
             if (meio == null || !selecionados.add(meio)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Meio de pagamento nulo ou repetido");
             }
