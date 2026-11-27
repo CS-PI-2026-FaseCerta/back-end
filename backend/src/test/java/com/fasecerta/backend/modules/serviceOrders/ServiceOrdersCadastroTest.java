@@ -39,6 +39,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
@@ -295,6 +296,33 @@ class ServiceOrdersCadastroTest {
     @Test
     void rejectsUnauthenticatedListRequest() throws Exception {
         mvc.perform(get("/api/ordens-servico")).andExpect(status().isUnauthorized());
+    }
+
+    @ParameterizedTest(name = "fixed discount, client preview included = {0}")
+    @ValueSource(booleans = {false, true})
+    void returnsServerCalculatedFixedDiscountOnCreationAndDetail(boolean includeClientPreview) throws Exception {
+        ObjectNode request = validRequest();
+        ObjectNode discount = request.putObject("desconto");
+        discount.put("tipo", "VALOR");
+        discount.put("valor", new BigDecimal("35.75"));
+        if (includeClientPreview) {
+            request.put("valorSubtotal", 900);
+            discount.put("valorDescontoCalculado", 1);
+            request.put("valorTotal", 899);
+        }
+
+        ResultMatcher[] expectedAmounts = {
+                jsonPath("$.valorSubtotal").value(700.0),
+                jsonPath("$.desconto.tipo").value("VALOR"),
+                jsonPath("$.desconto.valor").value(35.75),
+                jsonPath("$.desconto.valorDescontoCalculado").value(35.75),
+                jsonPath("$.valorTotal").value(664.25)
+        };
+        UUID id = lerId(submit(request).andExpect(status().isCreated()).andExpectAll(expectedAmounts));
+
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpectAll(expectedAmounts);
     }
 
     @Test
