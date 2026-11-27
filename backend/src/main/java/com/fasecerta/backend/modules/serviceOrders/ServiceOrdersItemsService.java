@@ -13,9 +13,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ServiceOrdersItemsService {
+
+    private static final int MAX_OBSERVACAO_LENGTH = 5000;
 
     private static final BigDecimal MAX_QUANTIDADE = BigDecimal.valueOf(ServiceItemRequest.MAX_QUANTITY);
 
@@ -40,11 +43,14 @@ public class ServiceOrdersItemsService {
     }
 
     @Transactional(readOnly = true)
-    public List<ServiceOrdersItemEntity> prepararItens(ServiceOrdersEntity ordem, List<ServiceItemRequest> requests) {
+    public List<ServiceOrdersItemEntity> prepararItens(
+            ServiceOrdersEntity ordem,
+            List<ServiceItemRequest> requests) {
 
         if (ordem == null) {
             throw new IllegalArgumentException("OS é obrigatória");
         }
+
         if (requests == null || requests.isEmpty()) {
             throw erro("A OS deve possuir pelo menos um serviço");
         }
@@ -56,29 +62,62 @@ public class ServiceOrdersItemsService {
                 throw erro("Cada item deve informar servicoId");
             }
 
-            ServicesEntity servico = servicesRepository
-                    .findByIdAndDeletedAtIsNull(request.servicoId())
-                    .orElseThrow(() -> new ResponseStatusException(
-                            HttpStatus.NOT_FOUND, "Serviço não encontrado ou removido"));
+            ServiceOrdersItemEntity item = prepararItem(
+                    ordem,
+                    request.servicoId(),
+                    request.quantidade(),
+                    request.valorUnitario(),
+                    request.observacao());
 
-            BigDecimal preco = validarMonetario(
-                    request.valorUnitario() != null
-                            ? request.valorUnitario()
-                            : servico.getValorBase(),
-                    "valorUnitario");
-
-            BigDecimal quantity = request.quantidade() == null ? null : BigDecimal.valueOf(request.quantidade());
-            ServiceOrdersItemEntity item = new ServiceOrdersItemEntity();
-            item.setOrdem(ordem);
-            item.vincularServico(servico);
-            item.setQuantidade(quantity);
-            item.setValorUnitarioCobrado(preco);
-            item.setValorTotalItem(calcularTotalItem(quantity, preco));
-            item.setObservacao(request.observacao());
             itens.add(item);
         }
 
         return List.copyOf(itens);
+    }
+
+    @Transactional(readOnly = true)
+    public ServiceOrdersItemEntity prepararItem(
+            ServiceOrdersEntity ordem,
+            UUID servicoId,
+            Long quantidade,
+            BigDecimal valorUnitario,
+            String observacao) {
+
+        if (ordem == null) {
+            throw new IllegalArgumentException("OS é obrigatória");
+        }
+
+        if (servicoId == null) {
+            throw erro("O serviço é obrigatório");
+        }
+
+        validarObservacao(observacao);
+
+        ServicesEntity servico = servicesRepository
+                .findByIdAndDeletedAtIsNull(servicoId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Serviço não encontrado ou removido"));
+
+        BigDecimal preco = validarMonetario(
+                valorUnitario != null
+                        ? valorUnitario
+                        : servico.getValorBase(),
+                "valorUnitario");
+
+        BigDecimal quantidadeDecimal = quantidade == null
+                ? null
+                : BigDecimal.valueOf(quantidade);
+
+        ServiceOrdersItemEntity item = new ServiceOrdersItemEntity();
+        item.setOrdem(ordem);
+        item.vincularServico(servico);
+        item.setQuantidade(quantidadeDecimal);
+        item.setValorUnitarioCobrado(preco);
+        item.setValorTotalItem(calcularTotalItem(quantidadeDecimal, preco));
+        item.setObservacao(normalizarObservacao(observacao));
+
+        return item;
     }
 
     public BigDecimal calcularSubtotal(List<ServiceOrdersItemEntity> itens) {
@@ -105,7 +144,8 @@ public class ServiceOrdersItemsService {
             throw erro("quantidade deve ser maior que zero");
         }
 
-        if (quantidade.stripTrailingZeros().scale() > 0 || quantidade.compareTo(MAX_QUANTIDADE) > 0) {
+        if (quantidade.stripTrailingZeros().scale() > 0
+                || quantidade.compareTo(MAX_QUANTIDADE) > 0) {
             throw erro("quantidade deve ser um número inteiro de até 15 dígitos");
         }
     }
@@ -122,6 +162,20 @@ public class ServiceOrdersItemsService {
         }
 
         return valor.setScale(2, RoundingMode.UNNECESSARY);
+    }
+
+    private void validarObservacao(String observacao) {
+        if (observacao != null && observacao.length() > MAX_OBSERVACAO_LENGTH) {
+            throw erro("A observação deve ter no máximo 5000 caracteres");
+        }
+    }
+
+    private String normalizarObservacao(String observacao) {
+        if (observacao == null || observacao.isBlank()) {
+            return null;
+        }
+
+        return observacao.trim();
     }
 
     private ResponseStatusException erro(String mensagem) {
