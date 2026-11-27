@@ -1,6 +1,7 @@
 package com.fasecerta.backend.modules.serviceOrders;
 
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.CreateServiceOrderRequest;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.UpdatePaymentConditionRequest;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderDetailResponse;
 import java.util.UUID;
@@ -14,6 +15,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -46,6 +48,13 @@ public class ServiceOrdersController {
     @ResponseStatus(HttpStatus.OK)
     public void remover(@PathVariable UUID id, Authentication authentication) {
         service.remover(id, authentication);
+    }
+
+    @PutMapping("/{id}")
+    public ServiceOrderDetailResponse atualizarCondicao(
+            @PathVariable UUID id, @Valid @RequestBody UpdatePaymentConditionRequest request,
+            Authentication authentication) {
+        return service.atualizarCondicao(id, request.pagamento(), authentication);
     }
 
     @PostMapping
