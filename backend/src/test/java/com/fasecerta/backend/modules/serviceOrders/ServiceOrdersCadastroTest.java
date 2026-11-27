@@ -411,10 +411,10 @@ class ServiceOrdersCadastroTest {
                 .setParameter("id", id).setParameter("actor", actor)
                 .setParameter("creator", usuarioId).setParameter("status", initialStatus.name())
                 .setParameter("customer", clienteId).getSingleResult());
-        LocalDateTime updatedAt = entityManager.createNativeQuery(
+        LocalDateTime updatedAt = (LocalDateTime) entityManager.createNativeQuery(
                 "SELECT updated_at FROM ordens_servico WHERE id = :id", LocalDateTime.class)
                 .setParameter("id", id).getSingleResult();
-        LocalDateTime deletedAt = entityManager.createNativeQuery(
+        LocalDateTime deletedAt = (LocalDateTime) entityManager.createNativeQuery(
                 "SELECT deleted_at FROM ordens_servico WHERE id = :id", LocalDateTime.class)
                 .setParameter("id", id).getSingleResult();
         assertTrue(!updatedAt.isBefore(before.getUpdatedAt()));
