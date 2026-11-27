@@ -6,5 +6,6 @@ public enum PaymentMethod {
     PIX,
     DINHEIRO,
     BOLETO,
-    TRANSFERENCIA
+    TRANSFERENCIA,
+    CHEQUE
 }

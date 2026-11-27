@@ -50,6 +50,7 @@ import org.springframework.web.bind.annotation.RestController;
         SecurityConfigTest.ProtectedController.class})
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
+        "cors.allowed-origins=http://localhost:5173",
         "jwt.expiration=60000",
         "auth.rate-limit.max-attempts=2",
         "auth.rate-limit.window-seconds=60"
