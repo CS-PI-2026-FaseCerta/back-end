@@ -4,6 +4,9 @@ import com.fasecerta.backend.exceptions.UnauthenticatedException;
 import com.fasecerta.backend.modules.customer.CustomerEntity;
 import com.fasecerta.backend.modules.customer.CustomerRepository;
 import com.fasecerta.backend.shared.enums.StatusOS;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderDetailResponse;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderPage;
+import org.springframework.data.domain.PageRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -113,6 +116,34 @@ public class ServiceOrdersService {
                 ordem.getValorTotal(),
                 pagamento,
                 ordem.getCreatedAt());
+    }
+
+    @Transactional(readOnly = true)
+    public ServiceOrderPage list(int page, int limit, Long orderNumber, StatusOS status) {
+        if (page < 1 || limit < 1 || limit > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page deve ser maior ou igual a 1 e limit deve estar entre 1 e 100");
+        }
+        PageRequest pageable = PageRequest.of(page - 1, limit);
+        if (pageable.getOffset() > Integer.MAX_VALUE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Página fora do intervalo suportado");
+        }
+        if (orderNumber != null && orderNumber < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "numeroOs deve ser maior que zero");
+        }
+        var orders = ordersRepository.findActiveSummaries(orderNumber, status == null ? null : status.name(), pageable);
+        return new ServiceOrderPage(orders.getContent(), orders.getTotalElements(), page, limit, orders.getTotalPages());
+    }
+
+    @Transactional(readOnly = true)
+    public ServiceOrderDetailResponse findById(UUID id) {
+        var order = ordersRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+        var items = itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(id);
+        var methods = paymentMethodRepository.findAllByOrdem_Id(id);
+        String customerName = ordersRepository.findHistoricalCustomerName(id);
+
+        return new ServiceOrderDetailResponse(montarResposta(order, items, methods), customerName,
+                order.getCreatedBy(), order.getUpdatedBy(), order.getUpdatedAt());
     }
 
     @Transactional

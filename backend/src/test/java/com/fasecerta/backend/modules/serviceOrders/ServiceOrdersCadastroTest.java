@@ -10,11 +10,13 @@ import com.fasecerta.backend.shared.enums.DiscountType;
 import com.fasecerta.backend.shared.enums.PaymentCondition;
 import com.fasecerta.backend.shared.enums.PaymentMethod;
 import com.fasecerta.backend.shared.enums.PersonType;
+import com.fasecerta.backend.shared.enums.StatusOS;
 import com.fasecerta.backend.shared.enums.UserProfile;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,15 +34,21 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -147,6 +155,256 @@ class ServiceOrdersCadastroTest {
     }
 
     private record Counts(long orders, long items, long paymentMethods, long numbers) {}
+
+    private ResultActions getOrder(UUID id) throws Exception {
+        return mvc.perform(get("/api/ordens-servico/{id}", id)
+                .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")));
+    }
+
+    private MockHttpServletRequestBuilder listRequest() {
+        return get("/api/ordens-servico")
+                .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO"));
+    }
+
+    private ResultActions listOrders(int page, int limit) throws Exception {
+        return mvc.perform(listRequest()
+                .param("page", Integer.toString(page))
+                .param("limit", Integer.toString(limit)));
+    }
+
+    @Test
+    void listsActiveOrderSummariesAcrossPagesAfterCustomerDeletion() throws Exception {
+        var initial = mvc.perform(get("/api/ordens-servico")
+                        .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.limit").value(20))
+                .andReturn().getResponse();
+        int initialTotal = jsonMapper.readTree(initial.getContentAsString()).path("total").asInt();
+
+        UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID last = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+        UUID deleted = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        ordens.deleteById(deleted);
+        customers.deleteById(clienteId);
+
+        int total = initialTotal + 2;
+        listOrders(1, 1).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(1))
+                .andExpect(jsonPath("$.items[0].id").value(last.toString()))
+                .andExpect(jsonPath("$.items[0].numeroOs").isNumber())
+                .andExpect(jsonPath("$.items[0].clienteId").value(clienteId.toString()))
+                .andExpect(jsonPath("$.items[0].clienteNome").value("Cliente de teste"))
+                .andExpect(jsonPath("$.items[0].status").value("EM_ABERTO"))
+                .andExpect(jsonPath("$.items[0].valorTotal").value(630.0))
+                .andExpect(jsonPath("$.items[0].createdAt").exists())
+                .andExpect(jsonPath("$.items[0].servicos").doesNotExist())
+                .andExpect(jsonPath("$.total").value(total))
+                .andExpect(jsonPath("$.totalPages").value(total));
+        listOrders(2, 1).andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.items[0].id").value(first.toString()));
+        listOrders(total + 1, 1).andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.total").value(total));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0, 20", "1, 0", "1, 101", "2147483647, 20"})
+    void rejectsInvalidListPagination(int page, int limit) throws Exception {
+        listOrders(page, limit).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void searchesByExactOrderNumberAndCombinesItWithStatus() throws Exception {
+        UUID id = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        var order = ordens.findById(id).orElseThrow();
+        String number = order.getNumeroOs().toString();
+        submit(validRequest()).andExpect(status().isCreated());
+
+        mvc.perform(listRequest().param("numeroOs", number).param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(id.toString()))
+                .andExpect(jsonPath("$.total").value(1));
+        mvc.perform(listRequest().param("numeroOs", number).param("status", "EM_ABERTO").param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(id.toString()))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
+        mvc.perform(listRequest().param("numeroOs", number).param("status", "PAGO"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.total").value(0));
+
+        ordens.deleteById(id);
+        mvc.perform(listRequest().param("numeroOs", number))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isEmpty())
+                .andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
+    void paginatesOnlyActiveOrdersWithTheRequestedStatus() throws Exception {
+        UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID second = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID removed = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        var paidOrders = ordens.findAllById(List.of(first, second, removed));
+        for (var order : paidOrders) {
+            order.setStatus(StatusOS.PAGO);
+        }
+        ordens.saveAllAndFlush(paidOrders);
+        ordens.deleteById(removed);
+        submit(validRequest()).andExpect(status().isCreated());
+
+        mvc.perform(listRequest().param("status", "PAGO").param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(second.toString()))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2));
+        mvc.perform(listRequest().param("status", "PAGO").param("limit", "1").param("page", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(first.toString()));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"status,INVALIDO", "numeroOs,abc", "numeroOs,0", "numeroOs,-1"})
+    void rejectsInvalidListFilters(String parameter, String value) throws Exception {
+        mvc.perform(listRequest().param(parameter, value)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectsUnauthenticatedListRequest() throws Exception {
+        mvc.perform(get("/api/ordens-servico")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void readsRecordedOrderAfterCatalogPriceChanges() throws Exception {
+        ObjectNode request = requestWithDiscountAndPayment();
+        ((ObjectNode) request.at("/servicos/0")).put("observacao", "Instalação externa");
+        UUID id = lerId(submit(request).andExpect(status().isCreated()));
+        ServicesEntity service = catalogo.findById(servicoId).orElseThrow();
+        service.setValorBase(new BigDecimal("999.00"));
+        catalogo.saveAndFlush(service);
+
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.numeroOs").isNumber())
+                .andExpect(jsonPath("$.status").value("EM_ABERTO"))
+                .andExpect(jsonPath("$.clienteId").value(clienteId.toString()))
+                .andExpect(jsonPath("$.clienteNome").value("Cliente de teste"))
+                .andExpect(jsonPath("$.servicos[0].servicoId").value(servicoId.toString()))
+                .andExpect(jsonPath("$.servicos[0].quantidade").value(2))
+                .andExpect(jsonPath("$.servicos[0].observacao").value("Instalação externa"))
+                .andExpect(jsonPath("$.servicos[0].valorUnitarioCobrado").value(350.0))
+                .andExpect(jsonPath("$.servicos[0].valorTotalItem").value(700.0))
+                .andExpect(jsonPath("$.valorSubtotal").value(700.0))
+                .andExpect(jsonPath("$.desconto.tipo").value("PERCENTUAL"))
+                .andExpect(jsonPath("$.desconto.valor").value(10.0))
+                .andExpect(jsonPath("$.desconto.valorDescontoCalculado").value(70.0))
+                .andExpect(jsonPath("$.valorTotal").value(630.0))
+                .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"))
+                .andExpect(jsonPath("$.pagamento.valorEntrada").value(100.0))
+                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").value(3))
+                .andExpect(jsonPath("$.pagamento.descricaoParcelamento").value("Sem juros"))
+                .andExpect(jsonPath("$.pagamento.detalhes").value("Vencimento mensal"))
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "BOLETO")))
+                .andExpect(jsonPath("$.createdBy").value(usuarioId.toString()))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.updatedAt").exists());
+    }
+
+    @Test
+    void reusesQuantityAndNegotiatedPriceFromDetailInTheWritePayload() throws Exception {
+        ObjectNode original = validRequest();
+        ((ObjectNode) original.at("/servicos/0")).put("valorUnitario", new BigDecimal("42.75"));
+        UUID id = lerId(submit(original).andExpect(status().isCreated()));
+
+        var response = getOrder(id).andExpect(status().isOk()).andReturn().getResponse();
+        var detail = jsonMapper.readTree(response.getContentAsByteArray());
+        var recorded = detail.at("/servicos/0");
+
+        ObjectNode request = jsonMapper.createObjectNode();
+        request.set("clienteId", detail.required("clienteId"));
+        ObjectNode item = request.putArray("servicos").addObject();
+        item.set("servicoId", recorded.required("servicoId"));
+        item.set("quantidade", recorded.required("quantidade"));
+        item.set("valorUnitario", recorded.required("valorUnitarioCobrado"));
+
+        submit(request).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.servicos[0].quantidade").value(2))
+                .andExpect(jsonPath("$.servicos[0].valorUnitarioCobrado").value(42.75))
+                .andExpect(jsonPath("$.valorTotal").value(85.50));
+    }
+
+    @Test
+    void readsActiveOrderAfterCustomerAndServiceAreSoftDeleted() throws Exception {
+        var customer = customers.findById(clienteId).orElseThrow();
+        customer.setTipoPessoa(PersonType.PJ);
+        customer.setRazaoSocial("Empresa de teste");
+        customers.saveAndFlush(customer);
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+
+        catalogo.deleteById(servicoId);
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.servicos[0].servicoId").value(servicoId.toString()));
+
+        customers.deleteById(clienteId);
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.clienteId").value(clienteId.toString()))
+                .andExpect(jsonPath("$.clienteNome").value("Empresa de teste"))
+                .andExpect(jsonPath("$.servicos[0].servicoId").value(servicoId.toString()))
+                .andExpect(jsonPath("$.servicos[0].valorUnitarioCobrado").value(350.0))
+                .andExpect(jsonPath("$.valorSubtotal").value(700.0))
+                .andExpect(jsonPath("$.valorTotal").value(630.0));
+    }
+
+    @Test
+    void rejectsUnauthenticatedDetailRequest() throws Exception {
+        mvc.perform(get("/api/ordens-servico/{id}", UUID.randomUUID()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void returnsNotFoundForUnknownOrDeletedOrder() throws Exception {
+        getOrder(UUID.randomUUID()).andExpect(status().isNotFound());
+        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
+        ordens.deleteById(id);
+
+        assertOrderMarkedAsDeleted(id);
+        assertEquals(1L, entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM os_servicos WHERE os_id = :id", Long.class)
+                .setParameter("id", id).getSingleResult());
+        assertEquals(2L, entityManager.createNativeQuery(
+                "SELECT COUNT(*) FROM os_meios_pagamento WHERE os_id = :id", Long.class)
+                .setParameter("id", id).getSingleResult());
+        getOrder(id).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Transactional
+    void batchDeletionsRetainOrdersAndRespectTheSelectedIds() throws Exception {
+        UUID first = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID second = lerId(submit(validRequest()).andExpect(status().isCreated()));
+        UUID third = lerId(submit(validRequest()).andExpect(status().isCreated()));
+
+        ordens.deleteAllByIdInBatch(List.of(first)::iterator);
+        assertOrderMarkedAsDeleted(first);
+        var secondOrder = ordens.findById(second).orElseThrow();
+
+        ordens.deleteAllInBatch(List.of(secondOrder)::iterator);
+        assertOrderMarkedAsDeleted(second);
+        assertTrue(ordens.findById(third).isPresent());
+
+        ordens.deleteAllInBatch();
+        assertOrderMarkedAsDeleted(third);
+    }
+
+    private void assertOrderMarkedAsDeleted(UUID id) {
+        assertNotNull(entityManager.createNativeQuery(
+                "SELECT deleted_at FROM ordens_servico WHERE id = :id", LocalDateTime.class)
+                .setParameter("id", id).getSingleResult());
+        assertTrue(ordens.findById(id).isEmpty());
+    }
 
     private Counts persistedCounts() {
         return new Counts(ordens.count(), itens.count(), meios.count(), numeros.count());
