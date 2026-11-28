@@ -102,7 +102,7 @@ public final class ServiceOrdersDtos {
             BigDecimal valorUnitario,
 
             String observacao) {
-            static final long MAX_QUANTITY = 999_999_999_999_999L;
+            public static final long MAX_QUANTITY = 999_999_999_999_999L;
         }
 
         public record DiscountRequest(

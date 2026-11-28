@@ -16,6 +16,8 @@ import com.fasecerta.backend.shared.enums.StatusOS;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -184,6 +186,41 @@ class ServiceOrderItemControllerIntegrationTest {
                         .compareTo(ordemAtualizada.getValorTotal()));
 
         assertEquals(usuarioId, ordemAtualizada.getUpdatedBy());
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {2_147_483_648L, 999_999_999_999_999L})
+    void aceitaMesmoLimiteDeQuantidadeDoCadastro(long quantidade) throws Exception {
+        String request = """
+                {"servicoId":"%s","quantidade":%d,"valorUnitarioCobrado":0.01}
+                """.formatted(servicoId, quantidade);
+
+        mvc.perform(post("/api/ordens-servico/{ordemServicoId}/itens", ordemServicoId)
+                        .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.quantidade").value(quantidade));
+
+        BigDecimal esperado = BigDecimal.valueOf(quantidade).movePointLeft(2);
+        assertEquals(0, esperado.compareTo(ordemServicoRepository.findById(ordemServicoId)
+                .orElseThrow().getValorSubtotal()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "1000000000000000", "2.5", "\"3\""})
+    void rejeitaQuantidadesInvalidasComoCadastroEPut(String quantidade) throws Exception {
+        String request = """
+                {"servicoId":"%s","quantidade":%s,"valorUnitarioCobrado":0.01}
+                """.formatted(servicoId, quantidade);
+
+        mvc.perform(post("/api/ordens-servico/{ordemServicoId}/itens", ordemServicoId)
+                        .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isBadRequest());
+
+        assertTrue(itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(ordemServicoId).isEmpty());
     }
 
     @Test

@@ -31,6 +31,7 @@ import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -129,10 +130,14 @@ class ServiceOrdersAtualizacaoTest {
     }
 
     private UUID criarOrdem() throws Exception {
+        return criarOrdem(cadastro());
+    }
+
+    private UUID criarOrdem(ObjectNode body) throws Exception {
         var response = mvc.perform(post("/api/ordens-servico")
                         .header("Authorization", token())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsBytes(cadastro())))
+                        .content(jsonMapper.writeValueAsBytes(body)))
                 .andExpect(status().isCreated()).andReturn().getResponse();
         return UUID.fromString(jsonMapper.readTree(response.getContentAsByteArray()).required("id").asText());
     }
@@ -200,7 +205,63 @@ class ServiceOrdersAtualizacaoTest {
         assertEquals(antes.required("createdBy").asText(), depois.required("createdBy").asText());
         assertEquals(antes.required("createdAt").asText(), depois.required("createdAt").asText());
         assertEquals(antes.at("/servicos/0/id").asText(), depois.at("/servicos/0/id").asText());
+        assertEquals(2, depois.at("/pagamento/meios").size());
+        assertTrue(List.of("BOLETO", "CHEQUE").contains(depois.at("/pagamento/meios/0").asText()));
+        assertTrue(List.of("BOLETO", "CHEQUE").contains(depois.at("/pagamento/meios/1").asText()));
         assertNotEquals(antes.required("updatedAt").asText(), depois.required("updatedAt").asText());
+    }
+
+    @Test
+    void cadastroAdicaoIndividualEPutCompartilhamCalculoEPrecoHistorico() throws Exception {
+        ObjectNode novo = cadastro();
+        novo.putObject("desconto").put("tipo", "PERCENTUAL").put("valor", 10);
+        UUID id = criarOrdem(novo);
+        UUID adicionalId = criarServico("Serviço adicional", "50.00");
+        ObjectNode adicao = jsonMapper.createObjectNode();
+        adicao.put("servicoId", adicionalId.toString());
+        adicao.put("quantidade", 2);
+
+        mvc.perform(post("/api/ordens-servico/{id}/itens", id)
+                        .header("Authorization", token())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsBytes(adicao)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.valorUnitarioCobrado").value(50.0))
+                .andExpect(jsonPath("$.valorTotalItem").value(100.0));
+
+        ObjectNode depoisDaAdicao = detalhe(id);
+        assertEquals(340.0, depoisDaAdicao.required("valorSubtotal").asDouble());
+        assertEquals(34.0, depoisDaAdicao.at("/desconto/valorDescontoCalculado").asDouble());
+        assertEquals(306.0, depoisDaAdicao.required("valorTotal").asDouble());
+
+        var adicional = catalogo.findById(adicionalId).orElseThrow();
+        adicional.setValorBase(new BigDecimal("999.00"));
+        catalogo.saveAndFlush(adicional);
+
+        ObjectNode body = jsonMapper.createObjectNode();
+        body.put("clienteId", clienteId.toString());
+        body.set("servicos", depoisDaAdicao.required("servicos"));
+        for (JsonNode item : body.withArray("servicos")) {
+            ((ObjectNode) item).remove("valorUnitarioCobrado");
+        }
+        body.putObject("desconto").put("tipo", "PERCENTUAL").put("valor", 10);
+        body.putObject("pagamento").put("condicao", "A_VISTA")
+                .putArray("meios").add("BOLETO").add("CHEQUE");
+
+        atualizar(id, body).andExpect(status().isOk())
+                .andExpect(jsonPath("$.valorSubtotal").value(340.0))
+                .andExpect(jsonPath("$.valorTotal").value(306.0))
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("BOLETO", "CHEQUE")));
+
+        ObjectNode persistido = detalhe(id);
+        assertEquals(50.0, persistido.at("/servicos/1/valorUnitarioCobrado").asDouble());
+        assertEquals(306.0, persistido.required("valorTotal").asDouble());
+        assertEquals(2, persistido.at("/pagamento/meios").size());
+        assertEquals(Set.of("BOLETO", "CHEQUE"), Set.of(
+                persistido.at("/pagamento/meios/0").asText(),
+                persistido.at("/pagamento/meios/1").asText()));
+        assertEquals(new BigDecimal("999.00"), catalogo.findById(adicionalId).orElseThrow().getValorBase());
+        assertEquals(usuarioId.toString(), persistido.required("updatedBy").asText());
     }
 
     @Test
@@ -394,6 +455,14 @@ class ServiceOrdersAtualizacaoTest {
     void putPreservaMeiosAusentesOuNulosERemoveListaVazia() throws Exception {
         UUID id = criarOrdem();
         atualizar(id, atualizacao(id)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "DINHEIRO")));
+        ObjectNode pagamentoNulo = atualizacao(id);
+        pagamentoNulo.putNull("pagamento");
+        atualizar(id, pagamentoNulo).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "DINHEIRO")));
+        ObjectNode meiosOmitidos = atualizacao(id);
+        meiosOmitidos.putObject("pagamento").put("condicao", "A_VISTA");
+        atualizar(id, meiosOmitidos).andExpect(status().isOk())
                 .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "DINHEIRO")));
         ObjectNode nulos = atualizacao(id);
         nulos.putObject("pagamento").put("condicao", "A_VISTA").putNull("meios");

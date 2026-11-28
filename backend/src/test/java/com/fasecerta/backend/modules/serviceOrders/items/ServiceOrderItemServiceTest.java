@@ -7,6 +7,7 @@ import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemRepository;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemsService;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDiscountService;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersRepository;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrderStatusPolicy;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.AddServiceOrderItemRequest;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.ServiceOrderItemResponse;
 import com.fasecerta.backend.modules.services.ServicesEntity;
@@ -89,7 +90,8 @@ class ServiceOrderItemServiceTest {
                                 itemRepository,
                                 ordemServicoRepository,
                                 itemsService,
-                                discountService);
+                                discountService,
+                                new ServiceOrderStatusPolicy());
         }
 
         @Test

@@ -7,9 +7,9 @@ import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemRepository;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersItemsService;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDiscountService;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersRepository;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrderStatusPolicy;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.AddServiceOrderItemRequest;
 import com.fasecerta.backend.modules.serviceOrders.items.dto.ServiceOrderItemDtos.ServiceOrderItemResponse;
-import com.fasecerta.backend.shared.enums.StatusOS;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -30,17 +30,20 @@ public class ServiceOrderItemService {
         private final ServiceOrdersRepository ordemServicoRepository;
         private final ServiceOrdersItemsService itemsService;
         private final ServiceOrdersDiscountService discountService;
+        private final ServiceOrderStatusPolicy statusPolicy;
 
         public ServiceOrderItemService(
                         ServiceOrdersItemRepository itemRepository,
                         ServiceOrdersRepository ordemServicoRepository,
                         ServiceOrdersItemsService itemsService,
-                        ServiceOrdersDiscountService discountService) {
+                        ServiceOrdersDiscountService discountService,
+                        ServiceOrderStatusPolicy statusPolicy) {
 
                 this.itemRepository = itemRepository;
                 this.ordemServicoRepository = ordemServicoRepository;
                 this.itemsService = itemsService;
                 this.discountService = discountService;
+                this.statusPolicy = statusPolicy;
         }
 
         @Transactional
@@ -59,14 +62,12 @@ public class ServiceOrderItemService {
                                                 HttpStatus.NOT_FOUND,
                                                 "Ordem de serviço não encontrada"));
 
-                validarEstadoEditavel(ordemServico);
+                statusPolicy.exigirEdicaoComercialPermitida(ordemServico.getStatus());
 
                 ServiceOrdersItemEntity item = itemsService.prepararItem(
                                 ordemServico,
                                 request.servicoId(),
-                                request.quantidade() == null
-                                                ? null
-                                                : request.quantidade().longValue(),
+                                request.quantidade(),
                                 request.valorUnitarioCobrado(),
                                 request.observacao());
 
@@ -133,16 +134,6 @@ public class ServiceOrderItemService {
                         throw new ResponseStatusException(
                                         HttpStatus.BAD_REQUEST,
                                         "O serviço é obrigatório");
-                }
-        }
-
-        private void validarEstadoEditavel(ServiceOrdersEntity ordemServico) {
-                if (ordemServico.getStatus() != StatusOS.EM_ABERTO
-                                && ordemServico.getStatus() != StatusOS.NAO_APROVADO) {
-
-                        throw new ResponseStatusException(
-                                        HttpStatus.CONFLICT,
-                                        "Não é possível adicionar serviços à OS no estado atual");
                 }
         }
 
