@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.DiscountResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.PaymentResponse;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.PaymentRequest;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.CreateServiceOrderRequest;
@@ -184,6 +185,24 @@ public class ServiceOrdersService {
         ordem.setUpdatedBy(usuarioId);
         paymentMethodRepository.deleteByOrdemId(id);
         paymentMethodRepository.saveAllAndFlush(meios);
+        return montarDetalhe(ordem);
+    }
+
+    @Transactional
+    public ServiceOrderDetailResponse atualizarCondicao(
+            UUID id, PaymentRequest pagamento, Authentication authentication) {
+        UUID usuarioId = obterUsuarioAutenticado(authentication);
+        ServiceOrdersEntity ordem = ordersRepository.findActiveByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+
+        if (pagamento == null || pagamento.condicao() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe a condição de pagamento");
+        }
+
+        // A HU altera apenas a condição comercial; o total calculado e os meios são preservados.
+        paymentsService.aplicarCondicao(ordem, pagamento);
+        ordem.setUpdatedBy(usuarioId);
+        ordersRepository.saveAndFlush(ordem);
         return montarDetalhe(ordem);
     }
 

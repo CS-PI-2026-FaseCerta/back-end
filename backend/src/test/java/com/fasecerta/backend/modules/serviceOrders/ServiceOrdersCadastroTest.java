@@ -54,7 +54,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -163,13 +162,6 @@ class ServiceOrdersCadastroTest {
                 .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, profile.name()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsBytes(request)));
-    }
-
-    private ResultActions updatePayment(UUID id, String body) throws Exception {
-        return mvc.perform(put("/api/ordens-servico/{id}", id)
-                .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body));
     }
 
     private Authentication authenticatedUser() {
@@ -600,113 +592,34 @@ class ServiceOrdersCadastroTest {
                 .andExpect(jsonPath("$.pagamento.meios[0]").value("PIX"));
     }
 
-    @Test
-    void alteraParceladoParaAVistaELimpaCamposPersistidos() throws Exception {
-        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
-        Counts before = persistedCounts();
+    @ParameterizedTest
+    @ValueSource(strings = {"null", "0", "12.34", "700"})
+    void cadastraParcelamentoComCamposOpcionaisELimitesDaEntrada(String entrada) throws Exception {
+        ObjectNode request = validRequest();
+        ObjectNode pagamento = request.putObject("pagamento")
+                .put("condicao", "PARCELADO").put("quantidadeParcelas", 1);
+        if (!entrada.equals("null")) {
+            pagamento.set("valorEntrada", jsonMapper.readTree(entrada));
+        }
 
-        updatePayment(id, """
-                {"pagamento":{"condicao":"A_VISTA","detalhes":"Na entrega"}}
-                """)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pagamento.condicao").value("A_VISTA"))
-                .andExpect(jsonPath("$.pagamento.valorEntrada").doesNotExist())
-                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").doesNotExist())
-                .andExpect(jsonPath("$.pagamento.descricaoParcelamento").doesNotExist());
-
-        getOrder(id).andExpect(status().isOk())
-                .andExpect(jsonPath("$.pagamento.condicao").value("A_VISTA"))
-                .andExpect(jsonPath("$.pagamento.valorEntrada").doesNotExist())
-                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").doesNotExist())
-                .andExpect(jsonPath("$.pagamento.descricaoParcelamento").doesNotExist())
-                .andExpect(jsonPath("$.pagamento.detalhes").value("Na entrega"))
-                .andExpect(jsonPath("$.pagamento.meios", containsInAnyOrder("PIX", "BOLETO")))
-                .andExpect(jsonPath("$.valorTotal").value(630.0));
+        UUID id = lerId(submit(request).andExpect(status().isCreated()));
         var ordem = ordens.findById(id).orElseThrow();
-        assertEquals(PaymentCondition.A_VISTA, ordem.getCondicaoPagamento());
-        assertNull(ordem.getValorEntrada());
-        assertNull(ordem.getQuantidadeParcelas());
+        assertEquals(PaymentCondition.PARCELADO, ordem.getCondicaoPagamento());
+        assertEquals(Integer.valueOf(1), ordem.getQuantidadeParcelas());
         assertNull(ordem.getDescricaoParcelamento());
-        assertEquals(usuarioId, ordem.getUpdatedBy());
-        assertEquals(before, persistedCounts());
-    }
-
-    @Test
-    void aceitaParcelamentoApenasComQuantidadeNoPostENoPut() throws Exception {
-        var request = validRequest();
-        request.putObject("pagamento").put("condicao", "PARCELADO").put("quantidadeParcelas", 1);
-        UUID id = lerId(submit(request).andExpect(status().isCreated()));
-        getOrder(id).andExpect(status().isOk())
+        assertNull(ordem.getDetalhesPagamento());
+        var consulta = getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"))
                 .andExpect(jsonPath("$.pagamento.quantidadeParcelas").value(1))
-                .andExpect(jsonPath("$.pagamento.valorEntrada").doesNotExist())
                 .andExpect(jsonPath("$.pagamento.descricaoParcelamento").doesNotExist())
                 .andExpect(jsonPath("$.pagamento.detalhes").doesNotExist());
-
-        updatePayment(id, """
-                {"pagamento":{"condicao":"A_VISTA"}}
-                """).andExpect(status().isOk());
-        updatePayment(id, """
-                {"pagamento":{"condicao":"PARCELADO","quantidadeParcelas":2}}
-                """).andExpect(status().isOk());
-        getOrder(id).andExpect(status().isOk())
-                .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"))
-                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").value(2))
-                .andExpect(jsonPath("$.pagamento.valorEntrada").doesNotExist())
-                .andExpect(jsonPath("$.pagamento.descricaoParcelamento").doesNotExist())
-                .andExpect(jsonPath("$.pagamento.detalhes").doesNotExist());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"0", "630.00"})
-    void aceitaEntradaNosLimitesDoTotalComDesconto(String entrada) throws Exception {
-        var request = requestWithDiscountAndPayment();
-        ((ObjectNode) request.at("/pagamento")).set("valorEntrada", jsonMapper.readTree(entrada));
-        UUID id = lerId(submit(request).andExpect(status().isCreated()));
-        updatePayment(id, """
-                {"pagamento":{"condicao":"PARCELADO","quantidadeParcelas":3,"valorEntrada":%s}}
-                """.formatted(entrada)).andExpect(status().isOk());
-        assertEquals(new BigDecimal(entrada).setScale(2), ordens.findById(id).orElseThrow().getValorEntrada());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "{}", "{\"pagamento\":null}", "{\"pagamento\":{}}",
-            "{\"pagamento\":{\"condicao\":\"OUTRA\"}}",
-            "{\"pagamento\":{\"condicao\":0}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\"}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":null}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":0}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":-1}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2.5}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":\"3\"}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":-1}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":630.01}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":\"100\"}}",
-            "{\"pagamento\":{\"condicao\":\"A_VISTA\",\"quantidadeParcelas\":2}}"
-    })
-    void rejeitaAtualizacaoInvalidaSemAlterarPagamentoPersistido(String body) throws Exception {
-        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
-        updatePayment(id, body).andExpect(status().isBadRequest());
-        getOrder(id).andExpect(status().isOk())
-                .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"))
-                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").value(3))
-                .andExpect(jsonPath("$.pagamento.valorEntrada").value(100.0))
-                .andExpect(jsonPath("$.pagamento.descricaoParcelamento").value("Sem juros"))
-                .andExpect(jsonPath("$.pagamento.detalhes").value("Vencimento mensal"));
-    }
-
-    @Test
-    void rejeitaAtualizacaoDeCondicaoSemTokenOuDeOrdemInexistente() throws Exception {
-        UUID id = lerId(submit(requestWithDiscountAndPayment()).andExpect(status().isCreated()));
-        String body = """
-                {"pagamento":{"condicao":"A_VISTA"}}
-                """;
-        mvc.perform(put("/api/ordens-servico/{id}", id)
-                .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isUnauthorized());
-        updatePayment(UUID.randomUUID(), body).andExpect(status().isNotFound());
-        getOrder(id).andExpect(status().isOk())
-                .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"));
+        if (entrada.equals("null")) {
+            assertNull(ordem.getValorEntrada());
+            consulta.andExpect(jsonPath("$.pagamento.valorEntrada").doesNotExist());
+        } else {
+            assertEquals(new BigDecimal(entrada).setScale(2), ordem.getValorEntrada());
+            consulta.andExpect(jsonPath("$.pagamento.valorEntrada").value(Double.parseDouble(entrada)));
+        }
     }
 
     @ParameterizedTest
@@ -841,8 +754,10 @@ class ServiceOrdersCadastroTest {
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":0}}",
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2.5}}",
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":\"3\"}}",
-            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":\"100\"}}",
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":-1}}",
+            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":-1}}",
+            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":\"100\"}}",
+            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":true}}",
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":701}}",
             "{\"desconto\":{\"tipo\":\"VALOR\",\"valor\":100},"
                     + "\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":650}}",

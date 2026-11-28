@@ -1,6 +1,7 @@
 package com.fasecerta.backend.modules.serviceOrders;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 import com.fasecerta.backend.shared.enums.DiscountType;
 import com.fasecerta.backend.shared.enums.PaymentCondition;
@@ -46,10 +47,44 @@ public final class ServiceOrdersDtos {
                 PaymentRequest pagamento) {
         }
 
-        public record UpdatePaymentConditionRequest(
-                @NotNull(message = "pagamento é obrigatório")
+        public record UpdateServiceOrderRequest(
+                @NotNull(message = "clienteId é obrigatório")
+                UUID clienteId,
+
+                @NotEmpty(message = "A OS deve possuir pelo menos um serviço")
+                List<@NotNull @Valid UpdateServiceItemRequest> servicos,
+
+                @Valid
+                DiscountRequest desconto,
+
                 @Valid
                 PaymentRequest pagamento) {
+        }
+
+        public record UpdateServiceItemRequest(
+                UUID id,
+
+                @NotNull(message = "servicoId é obrigatório")
+                UUID servicoId,
+
+                @NotNull(message = "quantidade é obrigatória")
+                @Positive(message = "quantidade deve ser maior que zero")
+                @Max(value = ServiceItemRequest.MAX_QUANTITY, message = "quantidade aceita até 15 dígitos")
+                @JsonDeserialize(using = ServiceQuantityDeserializer.class)
+                Long quantidade,
+
+                @DecimalMin(value = "0", message = "valorUnitario não pode ser negativo")
+                @Digits(integer = 17, fraction = 2, message = "valorUnitario deve possuir no máximo duas casas decimais")
+                @JsonAlias("valorUnitarioCobrado")
+                BigDecimal valorUnitario,
+
+                String observacao) {
+        }
+
+        public record UpdateStatusRequest(
+                @NotNull(message = "status é obrigatório")
+                @JsonDeserialize(using = EnumPorNome.class)
+                StatusOS status) {
         }
 
         public record ServiceItemRequest(
@@ -67,7 +102,7 @@ public final class ServiceOrdersDtos {
             BigDecimal valorUnitario,
 
             String observacao) {
-            static final long MAX_QUANTITY = 999_999_999_999_999L;
+            public static final long MAX_QUANTITY = 999_999_999_999_999L;
         }
 
         public record DiscountRequest(
@@ -129,7 +164,8 @@ public final class ServiceOrdersDtos {
                 String clienteNome,
                 UUID createdBy,
                 UUID updatedBy,
-                LocalDateTime updatedAt) {
+                LocalDateTime updatedAt,
+                LocalDateTime dataFinalizacao) {
         }
 
         public record ServiceItemResponse(
