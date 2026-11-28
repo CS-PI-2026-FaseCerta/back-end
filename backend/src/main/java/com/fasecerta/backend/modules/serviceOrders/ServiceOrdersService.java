@@ -21,8 +21,18 @@ import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.PaymentResp
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceOrderResponse;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.CreateServiceOrderRequest;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.UpdateServiceOrderRequest;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.UpdateServiceItemRequest;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.ServiceItemRequest;
+import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.PaymentRequest;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import java.util.UUID;
 
@@ -37,6 +47,7 @@ public class ServiceOrdersService {
     private final ServiceOrdersDiscountService discountService;
     private final ServiceOrdersPaymentsService paymentsService;
     private final ServiceOrdersNumberService numberService;
+    private final ServiceOrderStatusPolicy statusPolicy;
 
     public ServiceOrdersService(
             CustomerRepository customerRepository,
@@ -46,7 +57,8 @@ public class ServiceOrdersService {
             ServiceOrdersItemsService itemsService,
             ServiceOrdersDiscountService discountService,
             ServiceOrdersPaymentsService paymentsService,
-            ServiceOrdersNumberService numberService) {
+            ServiceOrdersNumberService numberService,
+            ServiceOrderStatusPolicy statusPolicy) {
 
         this.customerRepository = customerRepository;
         this.ordersRepository = ordersRepository;
@@ -56,6 +68,7 @@ public class ServiceOrdersService {
         this.discountService = discountService;
         this.paymentsService = paymentsService;
         this.numberService = numberService;
+        this.statusPolicy = statusPolicy;
     }
 
     @Transactional(readOnly = true)
@@ -150,7 +163,7 @@ public class ServiceOrdersService {
         String customerName = ordersRepository.findHistoricalCustomerName(id);
 
         return new ServiceOrderDetailResponse(montarResposta(order, items, methods), customerName,
-                order.getCreatedBy(), order.getUpdatedBy(), order.getUpdatedAt());
+                order.getCreatedBy(), order.getUpdatedBy(), order.getUpdatedAt(), order.getDataFinalizacao());
     }
 
     @Transactional
@@ -164,8 +177,6 @@ public class ServiceOrdersService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ordem de serviço não pode ser removida no estado atual");
         }
 
-        // A entidade está gerenciada: o UPDATE ocorre na transação, com updated_at via @PreUpdate.
-        // Nenhuma operação de remoção é executada sobre a OS ou sua composição.
         ordem.setDeletedAt(LocalDateTime.now());
         ordem.setUpdatedBy(usuarioId);
     }
@@ -176,15 +187,157 @@ public class ServiceOrdersService {
         UUID usuarioId = obterUsuarioAutenticado(authentication);
         ServiceOrdersEntity ordem = ordersRepository.findActiveByIdForUpdate(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+        statusPolicy.exigirEdicaoComercialPermitida(ordem.getStatus());
         if (novosMeios == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Informe os meios de pagamento");
         }
 
         var meios = paymentsService.prepararMeios(ordem, novosMeios);
         ordem.setUpdatedBy(usuarioId);
+        ordem.setUpdatedAt(LocalDateTime.now());
+        persistirMeios(id, meios);
+        ordersRepository.flush();
+        return montarDetalhe(ordem);
+    }
+
+    @Transactional
+    public ServiceOrderDetailResponse atualizar(
+            UUID id, UpdateServiceOrderRequest request, Authentication authentication) {
+        UUID usuarioId = obterUsuarioAutenticado(authentication);
+        ServiceOrdersEntity ordem = ordersRepository.findActiveByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+        statusPolicy.exigirEdicaoComercialPermitida(ordem.getStatus());
+        if (request == null || request.clienteId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "clienteId é obrigatório");
+        }
+
+        CustomerEntity cliente = customerRepository.findByIdAndDeletedAtIsNull(request.clienteId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Cliente não encontrado ou removido"));
+        var itensAtuais = itemRepository.findAllByOrdem_IdOrderByCreatedAtAscIdAsc(id);
+        var itens = prepararAtualizacaoItens(ordem, itensAtuais, request.servicos());
+        var meiosAtuais = paymentMethodRepository.findAllByOrdem_Id(id).stream()
+                .map(ServiceOrdersPaymentMethodEntity::getMeioPagamento).toList();
+
+        ordem.setCliente(cliente);
+        ordem.setValorSubtotal(itemsService.calcularSubtotal(itens));
+        discountService.aplicarDesconto(ordem, request.desconto());
+
+        PaymentRequest recebido = request.pagamento();
+        List<PaymentMethod> meiosEfetivos = recebido == null || recebido.meios() == null
+                ? meiosAtuais : recebido.meios();
+        PaymentRequest pagamentoEfetivo = recebido == null
+                ? new PaymentRequest(ordem.getCondicaoPagamento(), ordem.getValorEntrada(),
+                        ordem.getQuantidadeParcelas(), ordem.getDescricaoParcelamento(),
+                        ordem.getDetalhesPagamento(), meiosEfetivos)
+                : new PaymentRequest(recebido.condicao(), recebido.valorEntrada(),
+                        recebido.quantidadeParcelas(), recebido.descricaoParcelamento(),
+                        recebido.detalhes(), meiosEfetivos);
+        paymentsService.aplicarCondicao(ordem, pagamentoEfetivo);
+        var novosMeios = recebido != null && recebido.meios() != null
+                ? paymentsService.prepararMeios(ordem, recebido.meios()) : null;
+
+        Set<UUID> mantidos = new HashSet<>();
+        for (ServiceOrdersItemEntity item : itens) {
+            if (item.getId() != null) {
+                mantidos.add(item.getId());
+            }
+        }
+        itemRepository.deleteAll(itensAtuais.stream()
+                .filter(item -> !mantidos.contains(item.getId())).toList());
+        itemRepository.saveAllAndFlush(itens);
+        if (novosMeios != null) {
+            persistirMeios(id, novosMeios);
+        }
+        ordem.setUpdatedBy(usuarioId);
+        ordem.setUpdatedAt(LocalDateTime.now());
+        ordersRepository.saveAndFlush(ordem);
+        return montarDetalhe(ordem);
+    }
+
+    @Transactional
+    public ServiceOrderDetailResponse alterarStatus(UUID id, StatusOS proximo, Authentication authentication) {
+        UUID usuarioId = obterUsuarioAutenticado(authentication);
+        ServiceOrdersEntity ordem = ordersRepository.findActiveByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Ordem de serviço não encontrada"));
+        statusPolicy.exigirTransicaoPermitida(ordem.getStatus(), proximo);
+        ordem.setStatus(proximo);
+        if (proximo == StatusOS.PAGO) {
+            ordem.setDataFinalizacao(LocalDateTime.now());
+        }
+        ordem.setUpdatedBy(usuarioId);
+        ordem.setUpdatedAt(LocalDateTime.now());
+        ordersRepository.saveAndFlush(ordem);
+        return montarDetalhe(ordem);
+    }
+
+    private void persistirMeios(UUID id, List<ServiceOrdersPaymentMethodEntity> meios) {
         paymentMethodRepository.deleteByOrdemId(id);
         paymentMethodRepository.saveAllAndFlush(meios);
-        return montarDetalhe(ordem);
+    }
+
+    private List<ServiceOrdersItemEntity> prepararAtualizacaoItens(
+            ServiceOrdersEntity ordem, List<ServiceOrdersItemEntity> atuais,
+            List<UpdateServiceItemRequest> requests) {
+        if (requests == null || requests.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A OS deve possuir pelo menos um serviço");
+        }
+        Map<UUID, ServiceOrdersItemEntity> porId = new HashMap<>();
+        Map<UUID, List<ServiceOrdersItemEntity>> porServico = new HashMap<>();
+        for (ServiceOrdersItemEntity item : atuais) {
+            porId.put(item.getId(), item);
+            porServico.computeIfAbsent(item.getServicoId(), ignored -> new ArrayList<>()).add(item);
+        }
+        Map<UUID, Integer> quantidadePorServico = new HashMap<>();
+        for (UpdateServiceItemRequest request : requests) {
+            if (request == null || request.servicoId() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cada item deve informar servicoId");
+            }
+            quantidadePorServico.merge(request.servicoId(), 1, Integer::sum);
+        }
+
+        Set<UUID> usados = new HashSet<>();
+        List<ServiceOrdersItemEntity> correspondentes = new ArrayList<>();
+        List<ServiceItemRequest> normalizados = new ArrayList<>();
+        for (UpdateServiceItemRequest request : requests) {
+            ServiceOrdersItemEntity anterior = null;
+            if (request.id() != null) {
+                anterior = porId.get(request.id());
+                if (anterior == null || !request.servicoId().equals(anterior.getServicoId())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Item não pertence à OS ou ao serviço informado");
+                }
+            } else if (porServico.getOrDefault(request.servicoId(), List.of()).size() == 1
+                    && quantidadePorServico.get(request.servicoId()) == 1) {
+                anterior = porServico.get(request.servicoId()).getFirst();
+            } else if (request.valorUnitario() == null && porServico.containsKey(request.servicoId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Informe o id ou o valorUnitario para distinguir itens repetidos");
+            }
+            if (anterior != null && !usados.add(anterior.getId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Item repetido na atualização");
+            }
+            BigDecimal preco = request.valorUnitario() != null
+                    ? request.valorUnitario()
+                    : anterior == null ? null : anterior.getValorUnitarioCobrado();
+            normalizados.add(new ServiceItemRequest(request.servicoId(), request.quantidade(),
+                    preco, request.observacao()));
+            correspondentes.add(anterior);
+        }
+        var preparados = itemsService.prepararItens(ordem, normalizados);
+        List<ServiceOrdersItemEntity> resultado = new ArrayList<>();
+        for (int index = 0; index < preparados.size(); index++) {
+            ServiceOrdersItemEntity anterior = correspondentes.get(index);
+            ServiceOrdersItemEntity preparado = preparados.get(index);
+            if (anterior == null) {
+                resultado.add(preparado);
+            } else {
+                anterior.setQuantidade(preparado.getQuantidade());
+                anterior.setValorUnitarioCobrado(preparado.getValorUnitarioCobrado());
+                anterior.setValorTotalItem(preparado.getValorTotalItem());
+                anterior.setObservacao(preparado.getObservacao());
+                resultado.add(anterior);
+            }
+        }
+        return List.copyOf(resultado);
     }
 
     @Transactional
