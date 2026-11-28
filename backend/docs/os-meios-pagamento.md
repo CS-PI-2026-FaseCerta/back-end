@@ -10,17 +10,9 @@ A tabela `os_meios_pagamento` possui um único mapeamento JPA: `ServiceOrdersPay
 
 Os meios representam opções **aceitas**, não pagamentos realizados. A operação não altera status, total ou quitação.
 
-## Pendência do PUT da OS
+## Atualização pelo PUT da OS
 
-Esta branch não possui PUT em `ServiceOrdersController` nem DTO de atualização da OS. A operação `substituirMeios` é **somente interna ao serviço**; ainda não é possível testar a substituição por HTTP.
-
-Quando o contrato de atualização completa for implementado:
-
-1. Faça o controller exigir a autenticação atual e encaminhar o DTO de atualização ao serviço da OS. Mantenha as regras já definidas para itens, desconto, cálculo, status e demais campos.
-2. Execute todas as alterações da OS em **um único método transacional**. Dentro dessa transação, chame `substituirMeios(id, novosMeios, authentication)` somente quando houver uma lista de meios a substituir. A operação usa a transação existente e reverte a exclusão e as novas inserções se qualquer etapa da atualização falhar.
-3. Se `pagamento` ou `pagamento.meios` estiver ausente ou nulo, preserve as associações atuais; a semântica definitiva deve ser declarada no DTO do PUT. Se uma lista vazia for enviada explicitamente, passe `List.of()` para remover todas as associações. Não converta campo ausente ou nulo em lista vazia.
-4. Devolva o detalhe atualizado usando a leitura dos meios persistidos, mantendo o campo `pagamento.meios`. Não acrescente um campo paralelo nem um endpoint exclusivo.
-5. Acrescente testes HTTP de PUT autenticado e sem token para substituição, lista vazia, campo omitido, campo nulo, elementos nulos, nomes desconhecidos, duplicatas e rollback; depois faça GET do mesmo ID para comprovar o estado persistido. Os testes atuais cobrem a operação de serviço e o GET, mas não substituem essa verificação HTTP.
+`PUT /api/ordens-servico/{id}` atualiza a OS em uma única transação. A persistência dos meios foi extraída para um método privado compartilhado com `substituirMeios`; o PUT não depende da anotação transacional de uma chamada interna. `pagamento.meios` ausente ou nulo preserva os meios existentes, `[]` remove todos e uma lista preenchida os substitui. O GET posterior lê os registros realmente persistidos. Consulte [Atualização da OS](atualizacao-os.md) para o contrato completo, auditoria e transições de status.
 
 ## Conferência do MySQL existente
 
