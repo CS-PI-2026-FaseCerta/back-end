@@ -39,6 +39,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
@@ -54,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -176,6 +178,13 @@ class ServiceOrdersCadastroTest {
                 .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO")));
     }
 
+    private ResultActions updateOrder(UUID id, ObjectNode request) throws Exception {
+        return mvc.perform(put("/api/ordens-servico/{id}", id)
+                .header("Authorization", "Bearer " + jwtService.generateToken(usuarioId, "TECNICO"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsBytes(request)));
+    }
+
     private ResultActions deleteOrder(UUID id, UUID actor) throws Exception {
         return mvc.perform(delete("/api/ordens-servico/{id}", id)
                 .header("Authorization", "Bearer " + jwtService.generateToken(actor, "TECNICO")));
@@ -295,6 +304,78 @@ class ServiceOrdersCadastroTest {
     @Test
     void rejectsUnauthenticatedListRequest() throws Exception {
         mvc.perform(get("/api/ordens-servico")).andExpect(status().isUnauthorized());
+    }
+
+    @ParameterizedTest(name = "fixed discount, client preview included = {0}")
+    @ValueSource(booleans = {false, true})
+    void returnsServerCalculatedFixedDiscountOnCreationAndDetail(boolean includeClientPreview) throws Exception {
+        ObjectNode request = validRequest();
+        ObjectNode discount = request.putObject("desconto");
+        discount.put("tipo", "VALOR");
+        discount.put("valor", new BigDecimal("35.75"));
+        if (includeClientPreview) {
+            request.put("valorSubtotal", 900);
+            discount.put("valorDescontoCalculado", 1);
+            request.put("valorTotal", 899);
+        }
+
+        ResultMatcher[] expectedAmounts = {
+                jsonPath("$.valorSubtotal").value(700.0),
+                jsonPath("$.desconto.tipo").value("VALOR"),
+                jsonPath("$.desconto.valor").value(35.75),
+                jsonPath("$.desconto.valorDescontoCalculado").value(35.75),
+                jsonPath("$.valorTotal").value(664.25)
+        };
+        UUID id = lerId(submit(request).andExpect(status().isCreated()).andExpectAll(expectedAmounts));
+
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpectAll(expectedAmounts);
+    }
+
+    @Test
+    void recalculatesRecordedPercentageOnUpdateAndPersistsTheNewTotal() throws Exception {
+        ObjectNode request = validRequest();
+        ObjectNode discount = request.putObject("desconto");
+        discount.put("tipo", "PERCENTUAL").put("valor", 10);
+        UUID id = lerId(submit(request).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.valorSubtotal").value(700.0))
+                .andExpect(jsonPath("$.desconto.valorDescontoCalculado").value(70.0))
+                .andExpect(jsonPath("$.valorTotal").value(630.0)));
+
+        ((ObjectNode) request.at("/servicos/0")).put("valorUnitario", 250);
+        request.put("valorSubtotal", 700);
+        discount.put("valorDescontoCalculado", 70);
+        request.put("valorTotal", 630);
+
+        ResultMatcher[] expectedAmounts = {
+                jsonPath("$.valorSubtotal").value(500.0),
+                jsonPath("$.desconto.tipo").value("PERCENTUAL"),
+                jsonPath("$.desconto.valor").value(10.0),
+                jsonPath("$.desconto.valorDescontoCalculado").value(50.0),
+                jsonPath("$.valorTotal").value(450.0)
+        };
+        updateOrder(id, request).andExpect(status().isOk()).andExpectAll(expectedAmounts);
+        getOrder(id).andExpect(status().isOk()).andExpectAll(expectedAmounts);
+    }
+
+    @Test
+    void preservesRecordedOrderWhenFixedDiscountExceedsTheUpdatedSubtotal() throws Exception {
+        ObjectNode request = validRequest();
+        request.putObject("desconto").put("tipo", "VALOR").put("valor", 400);
+        UUID id = lerId(submit(request).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.valorTotal").value(300.0)));
+
+        ((ObjectNode) request.at("/servicos/0")).put("quantidade", 1);
+        updateOrder(id, request).andExpect(status().isBadRequest());
+
+        getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.servicos[0].quantidade").value(2))
+                .andExpect(jsonPath("$.valorSubtotal").value(700.0))
+                .andExpect(jsonPath("$.desconto.tipo").value("VALOR"))
+                .andExpect(jsonPath("$.desconto.valor").value(400.0))
+                .andExpect(jsonPath("$.desconto.valorDescontoCalculado").value(400.0))
+                .andExpect(jsonPath("$.valorTotal").value(300.0));
     }
 
     @Test
