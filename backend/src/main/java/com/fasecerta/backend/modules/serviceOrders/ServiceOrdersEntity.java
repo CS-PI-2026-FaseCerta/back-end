@@ -1,3 +1,4 @@
+
 package com.fasecerta.backend.modules.serviceOrders;
 
 import com.fasecerta.backend.modules.customer.CustomerEntity;
@@ -114,6 +115,9 @@ public class ServiceOrdersEntity {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(name = "data_finalizacao")
+    private LocalDateTime dataFinalizacao;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
