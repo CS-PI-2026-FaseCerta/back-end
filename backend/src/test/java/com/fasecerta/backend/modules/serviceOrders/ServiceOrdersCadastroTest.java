@@ -674,6 +674,36 @@ class ServiceOrdersCadastroTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"null", "0", "12.34", "700"})
+    void cadastraParcelamentoComCamposOpcionaisELimitesDaEntrada(String entrada) throws Exception {
+        ObjectNode request = validRequest();
+        ObjectNode pagamento = request.putObject("pagamento")
+                .put("condicao", "PARCELADO").put("quantidadeParcelas", 1);
+        if (!entrada.equals("null")) {
+            pagamento.set("valorEntrada", jsonMapper.readTree(entrada));
+        }
+
+        UUID id = lerId(submit(request).andExpect(status().isCreated()));
+        var ordem = ordens.findById(id).orElseThrow();
+        assertEquals(PaymentCondition.PARCELADO, ordem.getCondicaoPagamento());
+        assertEquals(Integer.valueOf(1), ordem.getQuantidadeParcelas());
+        assertNull(ordem.getDescricaoParcelamento());
+        assertNull(ordem.getDetalhesPagamento());
+        var consulta = getOrder(id).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"))
+                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").value(1))
+                .andExpect(jsonPath("$.pagamento.descricaoParcelamento").doesNotExist())
+                .andExpect(jsonPath("$.pagamento.detalhes").doesNotExist());
+        if (entrada.equals("null")) {
+            assertNull(ordem.getValorEntrada());
+            consulta.andExpect(jsonPath("$.pagamento.valorEntrada").doesNotExist());
+        } else {
+            assertEquals(new BigDecimal(entrada).setScale(2), ordem.getValorEntrada());
+            consulta.andExpect(jsonPath("$.pagamento.valorEntrada").value(Double.parseDouble(entrada)));
+        }
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {
             "{\"meios\":[\"PIX\"]}",
             "{\"condicao\":null,\"meios\":[\"PIX\"]}",
@@ -806,6 +836,9 @@ class ServiceOrdersCadastroTest {
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2.5}}",
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":\"3\"}}",
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":-1}}",
+            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":-1}}",
+            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":\"100\"}}",
+            "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":true}}",
             "{\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":701}}",
             "{\"desconto\":{\"tipo\":\"VALOR\",\"valor\":100},"
                     + "\"pagamento\":{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":650}}",

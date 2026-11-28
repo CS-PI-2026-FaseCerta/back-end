@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +24,7 @@ import com.fasecerta.backend.modules.services.ServicesEntity;
 import com.fasecerta.backend.modules.services.ServicesRepository;
 import com.fasecerta.backend.shared.enums.BillingType;
 import com.fasecerta.backend.shared.enums.PersonType;
+import com.fasecerta.backend.shared.enums.PaymentCondition;
 import com.fasecerta.backend.shared.enums.StatusOS;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.UpdateServiceOrderRequest;
 import com.fasecerta.backend.modules.serviceOrders.ServiceOrdersDtos.UpdateServiceItemRequest;
@@ -41,6 +43,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -345,6 +348,83 @@ class ServiceOrdersAtualizacaoTest {
 
         atualizar(id, body).andExpect(status().isBadRequest());
         assertEquals(new BigDecimal("240.00"), ordens.findById(id).orElseThrow().getValorTotal());
+    }
+
+    @Test
+    void putLimpaParcelamentoAoAlterarParaAVista() throws Exception {
+        ObjectNode inicial = cadastro();
+        inicial.putObject("pagamento").put("condicao", "PARCELADO")
+                .put("quantidadeParcelas", 3).put("valorEntrada", 100)
+                .put("descricaoParcelamento", "Sem juros").put("detalhes", "Vencimento mensal")
+                .putArray("meios").add("PIX");
+        UUID id = criarOrdem(inicial);
+        ObjectNode body = atualizacao(id);
+        body.putObject("pagamento").put("condicao", "A_VISTA");
+
+        atualizar(id, body).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.condicao").value("A_VISTA"));
+        var persistida = ordens.findById(id).orElseThrow();
+        assertEquals(PaymentCondition.A_VISTA, persistida.getCondicaoPagamento());
+        assertNull(persistida.getValorEntrada());
+        assertNull(persistida.getQuantidadeParcelas());
+        assertNull(persistida.getDescricaoParcelamento());
+        assertNull(persistida.getDetalhesPagamento());
+        ObjectNode pagamento = (ObjectNode) detalhe(id).required("pagamento");
+        assertEquals("A_VISTA", pagamento.required("condicao").asText());
+        for (String campo : List.of("valorEntrada", "quantidadeParcelas", "descricaoParcelamento", "detalhes")) {
+            assertTrue(pagamento.get(campo) == null || pagamento.get(campo).isNull());
+        }
+        assertEquals("PIX", pagamento.at("/meios/0").asText());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"condicao\":\"PARCELADO\"}",
+            "{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":0}",
+            "{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":-1}",
+            "{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2.5}",
+            "{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":\"2\"}",
+            "{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":-1}",
+            "{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":241}",
+            "{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":\"100\"}",
+            "{\"condicao\":\"PARCELADO\",\"quantidadeParcelas\":2,\"valorEntrada\":true}",
+            "{\"condicao\":\"A_VISTA\",\"quantidadeParcelas\":2}",
+            "{\"condicao\":\"OUTRA\"}"
+    })
+    void putRejeitaCondicoesInvalidasSemAlterarPagamento(String pagamento) throws Exception {
+        UUID id = criarOrdem();
+        ObjectNode antes = detalhe(id);
+        ObjectNode body = atualizacao(id);
+        body.set("pagamento", jsonMapper.readTree(pagamento));
+        atualizar(id, body).andExpect(status().isBadRequest());
+        assertEquals(antes.required("pagamento"), detalhe(id).required("pagamento"));
+        assertEquals(new BigDecimal("240.00"), ordens.findById(id).orElseThrow().getValorTotal());
+    }
+
+    @Test
+    void putAceitaParcelamentoSemOpcionaisEEntradaIgualAoTotalRecalculado() throws Exception {
+        UUID id = criarOrdem();
+        ObjectNode body = atualizacao(id);
+        body.putObject("pagamento").put("condicao", "PARCELADO").put("quantidadeParcelas", 2);
+        atualizar(id, body).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pagamento.condicao").value("PARCELADO"))
+                .andExpect(jsonPath("$.pagamento.quantidadeParcelas").value(2))
+                .andExpect(jsonPath("$.pagamento.valorEntrada").doesNotExist());
+        assertNull(ordens.findById(id).orElseThrow().getValorEntrada());
+
+        body.putObject("desconto").put("tipo", "VALOR").put("valor", 40);
+        ((ObjectNode) body.required("pagamento")).put("valorEntrada", 201);
+        atualizar(id, body).andExpect(status().isBadRequest());
+        ((ObjectNode) body.required("pagamento")).put("valorEntrada", 200)
+                .put("descricaoParcelamento", "Sem juros").put("detalhes", "Vencimento mensal");
+        atualizar(id, body).andExpect(status().isOk())
+                .andExpect(jsonPath("$.valorTotal").value(200.0));
+        ObjectNode consultada = detalhe(id);
+        assertEquals("PARCELADO", consultada.at("/pagamento/condicao").asText());
+        assertEquals(2, consultada.at("/pagamento/quantidadeParcelas").asInt());
+        assertEquals(200.0, consultada.at("/pagamento/valorEntrada").asDouble());
+        assertEquals("Sem juros", consultada.at("/pagamento/descricaoParcelamento").asText());
+        assertEquals("Vencimento mensal", consultada.at("/pagamento/detalhes").asText());
     }
 
     @Test

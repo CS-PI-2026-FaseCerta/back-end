@@ -122,6 +122,7 @@ public final class ServiceOrdersDtos {
 
                 @DecimalMin(value = "0", message = "valorEntrada não pode ser negativo")
                 @Digits(integer = 17, fraction = 2, message = "valorEntrada deve possuir no máximo duas casas decimais")
+                @JsonDeserialize(using = ValorEntradaNumerico.class)
                 BigDecimal valorEntrada,
 
                 @Positive(message = "quantidadeParcelas deve ser maior que zero")
@@ -203,6 +204,17 @@ public final class ServiceOrdersDtos {
                                 return context.reportInputMismatch(Long.class, "quantidade deve ser um número inteiro");
                         }
                         return parser.getLongValue();
+                }
+        }
+
+        public static final class ValorEntradaNumerico extends ValueDeserializer<BigDecimal> {
+                @Override
+                public BigDecimal deserialize(JsonParser parser, DeserializationContext context) {
+                        if (!parser.hasToken(JsonToken.VALUE_NUMBER_INT)
+                                && !parser.hasToken(JsonToken.VALUE_NUMBER_FLOAT)) {
+                                return context.reportInputMismatch(BigDecimal.class, "valorEntrada deve ser um número");
+                        }
+                        return parser.getDecimalValue();
                 }
         }
 
